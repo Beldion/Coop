@@ -1,0 +1,91 @@
+import { useState } from "react";
+import { supabase } from "../lib/supabase";
+
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Link, useNavigate } from "react-router-dom";
+
+export default function LoginForm() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const navigate = useNavigate();
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password,
+    });
+
+    if (error) alert(error.message);
+    else navigate("/dashboard");
+  };
+  return (
+    <div className="w-full flex items-center justify-center min-h-screen bg-muted/40 px-4">
+      <Card className="w-full max-w-md">
+        <CardHeader className="space-y-1 text-center">
+          <CardTitle className="text-2xl font-bold">Login</CardTitle>
+          <CardDescription>
+            Enter your username or email to access your account
+          </CardDescription>
+        </CardHeader>
+
+        <CardContent>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Username / Email</Label>
+              <Input
+                onChange={(e) => setEmail(e.target.value)}
+                id="email"
+                type="text"
+                placeholder="Enter your username or email"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                onChange={(e) => setPassword(e.target.value)}
+                id="password"
+                type="password"
+                placeholder="Enter your password"
+                required
+              />
+            </div>
+
+            <Button type="submit" className="w-full">
+              Submit
+            </Button>
+            <div className="flex justify-center align-items">
+              <Link
+                to="/forgot-password"
+                className="text-sm text-primary hover:underline "
+              >
+                Forgot your password?
+              </Link>
+            </div>
+            <div className="flex justify-center align-items gap-1">
+              <p> I don't have an account?</p>
+              <Link
+                to="/signup"
+                className="text-sm text-primary hover:underline "
+              >
+                Sign up
+              </Link>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
