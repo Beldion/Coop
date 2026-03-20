@@ -61,11 +61,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useNavigate, Link } from "react-router-dom";
+import { LoginSession } from "@/lib/utils";
 
 export default function LoginForm() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  LoginSession();
 
   const handleLogin = async (e) => {
     e.preventDefault();

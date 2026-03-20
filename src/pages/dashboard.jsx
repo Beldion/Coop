@@ -1,7 +1,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
-
+import { Button } from "@/components/ui/button";
 export default function Dashboard() {
   const navigate = useNavigate();
 
@@ -12,7 +12,9 @@ export default function Dashboard() {
 
   return (
     <div>
-      <button onClick={logout}>Logout</button>
+      <Button type="submit" onClick={logout}>
+        Logout
+      </Button>
     </div>
   );
 }
