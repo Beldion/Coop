@@ -11,9 +11,14 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { LoginSession } from "@/lib/utils";
+import { Link, useNavigate } from "react-router-dom";
+import ErrorLabel from "@/components/ui/error";
 
 export default function ResetPassword() {
   const [password, setPassword] = useState("");
+  const navigate = useNavigate();
+  const [error, setError] = useState(null);
 
   const updatePassword = async (e) => {
     e.preventDefault();
@@ -22,9 +27,9 @@ export default function ResetPassword() {
     });
 
     if (error) {
-      alert(error.message);
+      setError(error.message);
     } else {
-      alert("Password updated successfully");
+      navigate("/login");
     }
   };
 
@@ -49,11 +54,19 @@ export default function ResetPassword() {
                 placeholder="Enter your password"
                 required
               />
+              {error && <ErrorLabel message={error} />}
             </div>
-
-            <Button type="submit" className="w-full">
-              Update Password
-            </Button>
+            <div className="flex flex-col items-center align-center gap-2">
+              <Button type="submit" className="w-full">
+                Update Password
+              </Button>
+              <Link
+                to="/login"
+                className="text-sm text-primary hover:underline "
+              >
+                Back to Login
+              </Link>
+            </div>
           </form>
         </CardContent>
       </Card>

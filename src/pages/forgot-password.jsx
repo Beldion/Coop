@@ -11,10 +11,15 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { LoginSession } from "@/lib/utils";
+import { Link } from "react-router-dom";
+import ErrorLabel from "@/components/ui/error";
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
-
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(false);
+  LoginSession();
   const handleReset = async (e) => {
     e.preventDefault();
 
@@ -23,9 +28,10 @@ export default function ForgotPassword() {
     });
 
     if (error) {
-      alert(error.message);
+      setError(error.message);
     } else {
-      alert("Password reset email sent");
+      setSuccess(true);
+      //navigate("/");
     }
   };
 
@@ -38,25 +44,56 @@ export default function ForgotPassword() {
             Enter your email to receive password reset instructions
           </CardDescription>
         </CardHeader>
-
-        <CardContent>
-          <form onSubmit={handleReset} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Username / Email</Label>
-              <Input
-                onChange={(e) => setEmail(e.target.value)}
-                id="email"
-                type="text"
-                placeholder="Enter your username or email"
-                required
-              />
+        {!success && (
+          <CardContent>
+            <form onSubmit={handleReset} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Username / Email</Label>
+                <Input
+                  onChange={(e) => setEmail(e.target.value)}
+                  id="email"
+                  type="text"
+                  placeholder="Enter your username or email"
+                  required
+                />
+                {error && <ErrorLabel message={error} />}
+              </div>
+              <div className="flex flex-col items-center align-center gap-2">
+                <Button type="submit" className="w-full">
+                  Submit
+                </Button>
+                <Link
+                  to="/login"
+                  className="text-sm text-primary hover:underline "
+                >
+                  Back to Login
+                </Link>
+              </div>
+            </form>
+          </CardContent>
+        )}
+        {success && (
+          <div className="flex flex-col items-center gap-6 px-4">
+            <div className="flex flex-col items-center gap-2 text-center">
+              <h1 className="text-5xl font-bold">Check your email</h1>
+              <p className="max-w-xs">
+                If an account with that email exists, we’ve sent you a link to
+                reset your password.
+              </p>
             </div>
-
-            <Button type="submit" className="w-full">
-              Submit
-            </Button>
-          </form>
-        </CardContent>
+            <div className="w-full flex flex-col items-center gap-2 ">
+              <Button className="w-full">
+                Check your email for the reset link
+              </Button>
+              <Link
+                to="/login"
+                className="text-sm text-primary hover:underline "
+              >
+                Back to Login
+              </Link>
+            </div>
+          </div>
+        )}
       </Card>
     </div>
   );

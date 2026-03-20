@@ -12,11 +12,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
+import { LoginSession } from "@/lib/utils";
+import ErrorLabel from "@/components/ui/error";
 
 export default function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState(null);
   const navigate = useNavigate();
+
+  LoginSession();
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -26,8 +31,11 @@ export default function LoginForm() {
       password,
     });
 
-    if (error) alert(error.message);
-    else navigate("/dashboard");
+    if (error) {
+      setError(error.message);
+    } else {
+      navigate("/");
+    }
   };
   return (
     <div className="w-full flex items-center justify-center min-h-screen bg-muted/40 px-4">
@@ -44,7 +52,10 @@ export default function LoginForm() {
             <div className="space-y-2">
               <Label htmlFor="email">Username / Email</Label>
               <Input
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setError(null);
+                  setEmail(e.target.value);
+                }}
                 id="email"
                 type="text"
                 placeholder="Enter your username or email"
@@ -55,14 +66,17 @@ export default function LoginForm() {
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <Input
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  setError(null);
+                  setPassword(e.target.value);
+                }}
                 id="password"
                 type="password"
                 placeholder="Enter your password"
                 required
               />
             </div>
-
+            {error && <ErrorLabel message={error} />}
             <Button type="submit" className="w-full">
               Submit
             </Button>
@@ -72,15 +86,6 @@ export default function LoginForm() {
                 className="text-sm text-primary hover:underline "
               >
                 Forgot your password?
-              </Link>
-            </div>
-            <div className="flex justify-center align-items gap-1">
-              <p> I don't have an account?</p>
-              <Link
-                to="/signup"
-                className="text-sm text-primary hover:underline "
-              >
-                Sign up
               </Link>
             </div>
           </form>
