@@ -1,38 +1,33 @@
 import { clsx } from "clsx";
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+// import { useEffect, useState } from "react";
+// import { useNavigate } from "react-router-dom";
 import { twMerge } from "tailwind-merge";
 import { supabase } from "./supabase";
+// import { useAuthStore } from "@/store/useStore";
 
 export function cn(...inputs) {
   return twMerge(clsx(inputs));
 }
 
-export function LoginSession() {
-  const navigate = useNavigate();
-  const [session, setSession] = useState(null);
+export const formatZipCode = (value) => {
+  return value.slice(0, 5);
+};
 
-  useEffect(() => {
-    // get current session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-    });
+export const formatTin = (value) => {
+  // remove non-numbers
+  let clean = value.replace(/\D/g, "");
 
-    // listen to auth changes
-    const { data: listener } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setSession(session);
-      },
-    );
+  // ensure max 12 digits
+  clean = clean.slice(0, 12);
 
-    return () => {
-      listener.subscription.unsubscribe();
-    };
-  }, []);
+  // auto-pad if less than 11 → make it 12
+  if (clean.length > 0 && clean.length < 12) {
+    clean = clean.padEnd(12, "0");
+  }
 
-  useEffect(() => {
-    if (session) {
-      navigate("/");
-    }
-  }, [session, navigate]);
-}
+  return clean;
+};
+
+export const formatPhone = (value) => {
+  return value.replace(/\D/g, "").slice(0, 11);
+};
