@@ -151,6 +151,8 @@ export function UsersPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>Employee ID </TableHead>
+
                     <TableHead>Full Name</TableHead>
                     <TableHead>Address</TableHead>
                     <TableHead>Phone</TableHead>
@@ -166,6 +168,8 @@ export function UsersPage() {
                 <TableBody>
                   {allUsers.map((user) => (
                     <TableRow key={user.id}>
+                      <TableCell className="font-medium">{`${user?.employee_id}`}</TableCell>
+
                       <TableCell className="font-medium">{`${user?.first_name || ""} ${user.middle_name || ""} ${user.last_name || ""}`}</TableCell>
                       <TableCell>{`${user?.address_line_1 || ""} ${user.address_street || ""} ${user.address_barangay || ""} ${user.address_zip_code || ""} ${user.address_city || ""} ${user.address_province || ""}`}</TableCell>
                       <TableCell>{user.phone || ""}</TableCell>
@@ -309,6 +313,28 @@ export function UsersPage() {
                     !editingUser ? "bg-gray-50 cursor-not-allowed" : ""
                   } transition-all`}
                   placeholder="Enter last name"
+                />
+              </div>
+
+              {/* Employee ID */}
+              <div className="space-y-2">
+                <Label
+                  htmlFor="employeeID"
+                  className="text-sm font-semibold text-gray-700"
+                >
+                  Employee ID <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="employeeID"
+                  value={formData.employee_id || ""}
+                  onChange={(e) =>
+                    setFormData({ ...formData, employee_id: e.target.value })
+                  }
+                  disabled={!editingUser}
+                  className={`${
+                    !editingUser ? "bg-gray-50 cursor-not-allowed" : ""
+                  } transition-all`}
+                  placeholder="Enter employee ID"
                 />
               </div>
 

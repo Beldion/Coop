@@ -148,7 +148,25 @@ const ProfilePage = () => {
               placeholder="Enter last name"
             />
           </div>
-
+          {/* Last Name */}
+          <div className="space-y-2">
+            <Label
+              htmlFor="employeeId"
+              className="text-sm font-semibold text-gray-700"
+            >
+              Employee ID <span className="text-red-500">*</span>
+            </Label>
+            <Input
+              id="employeeId"
+              value={editedProfile?.employee_id}
+              onChange={(e) => handleInputChange("employee_id", e.target.value)}
+              disabled={!isEditing}
+              className={`${
+                !isEditing ? "bg-gray-50 cursor-not-allowed" : ""
+              } transition-all`}
+              placeholder="Enter Employee ID"
+            />
+          </div>
           <div className="space-y-2">
             <Label
               htmlFor="birthdate"
