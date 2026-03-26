@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { supabase } from "../lib/supabase";
 
 import {
   Card,
@@ -12,26 +11,23 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
-import { LoginSession } from "@/lib/utils";
 import ErrorLabel from "@/components/ui/error";
+import { useAuthStore } from "@/store/useStore";
 
 export default function LoginForm() {
+  const login = useAuthStore((state) => state.login);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
-  LoginSession();
-
   const handleLogin = async (e) => {
     e.preventDefault();
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
-      password,
-    });
+    const { error } = await login(email, password);
 
     if (error) {
+      console.log(error.message);
       setError(error.message);
     } else {
       navigate("/");
@@ -77,7 +73,7 @@ export default function LoginForm() {
               />
             </div>
             {error && <ErrorLabel message={error} />}
-            <Button type="submit" className="w-full">
+            <Button type="submit" className="w-full" size="lg">
               Submit
             </Button>
             <div className="flex justify-center align-items">
