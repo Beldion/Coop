@@ -103,7 +103,7 @@ const ProfilePage = () => {
               onChange={(e) => handleInputChange("first_name", e.target.value)}
               disabled={!isEditing}
               className={`${
-                !isEditing ? "bg-gray-50 cursor-not-allowed" : ""
+                !isEditing ? "bg-gray-50 cursor-not-allowed " : ""
               } transition-all`}
               placeholder="Enter first name"
             />

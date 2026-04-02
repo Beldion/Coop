@@ -5,8 +5,7 @@
 
 @custom-variant dark (&:is(.dark *));
 #root {
- width: 100%;
-
+  width: 100%;
 }
 
 :root {
@@ -79,7 +78,7 @@
 }
 
 @theme inline {
-  --font-sans: 'Geist Variable', sans-serif;
+  --font-sans: "Geist Variable", sans-serif;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -130,4 +129,14 @@
   html {
     @apply font-sans;
   }
+}
+
+.disabled\:opacity-50 {
+  &:disabled {
+    opacity: 100%;
+  }
+}
+
+.text-sm {
+  font-size: 1.2rem;
 }
