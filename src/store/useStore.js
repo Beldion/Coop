@@ -266,6 +266,106 @@ export const useUserStore = create((set) => ({
   },
 }));
 
+export const useLoanTypeStore = create((set, get) => ({
+  loanTypes: [],
+  loading: false,
+
+  // FETCH
+  fetchLoanTypes: async () => {
+    set({ loading: true });
+
+    const { data, error } = await supabase
+      .from("loan_type")
+      .select("*")
+      .eq("archive", false);
+
+    if (error) {
+      set({ loading: false });
+      return { error };
+    }
+
+    console.log("Fetching loan types...", data);
+
+    set({
+      loanTypes: data,
+      loading: false,
+    });
+  },
+
+  // CREATE
+  createLoanType: async (payload) => {
+    set({ loading: true });
+
+    console.log("Creating loan type with payload:", payload);
+
+    // ✅ Get current authenticated user
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      set({ loading: false });
+      return { error: { message: "User not authenticated" } };
+    }
+    const { data, error } = await supabase
+      .from("loan_type")
+      .insert([
+        {
+          loan_type: payload.loan_type,
+          loan_name: payload.loan_name,
+          loan_amount: Number(payload.loan_amount),
+          interest_rate: Number(payload.interest_rate),
+          term_months: Number(payload.term_months),
+          service_fee: Number(payload.service_fee),
+          created_by: user.id,
+        },
+      ])
+      .select();
+
+    if (error) {
+      set({ loading: false });
+      return { error };
+    }
+
+    // ✅ Option 1: optimistic update (no refetch)
+    set((state) => ({
+      loanTypes: [data[0], ...state.loanTypes],
+      loading: false,
+    }));
+
+    // ✅ Option 2 (alternative): refetch
+    // await get().fetchLoanTypes();
+
+    return { data };
+  },
+
+  // UPDATE ARCHIVE
+  updateArchive: async (id) => {
+    set({ loading: true });
+
+    const { data, error } = await supabase
+      .from("loan_type")
+      .update({ archive: true })
+      .eq("id", id) // or "id" if you didn’t migrate yet
+      .select();
+
+    if (error) {
+      set({ loading: false });
+      console.log("Error archiving loan type:", error);
+      return { error };
+    }
+
+    console.log("Archiving loan type with ID:", id, "Response:", data);
+    // ✅ update local state
+    set((state) => ({
+      loanTypes: state.loanTypes.filter((item) => item.id !== id),
+      loading: false,
+    }));
+
+    return { data };
+  },
+}));
 // MAIN STORE
 export const useStore = create(
   persist(
