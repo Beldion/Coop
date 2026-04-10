@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Link } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
@@ -30,11 +30,16 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Search, Eye, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { useStore } from "@/store/useStore";
+import { useLoanTypeStore } from "@/store/useStore";
+import { set } from "date-fns";
 
-export function LoansPage() {
-  const { loans, addLoan, updateLoan, deleteLoan } = useStore();
+export function LoanType() {
+  const { loanTypes, fetchLoanTypes, updateArchive, createLoanType } =
+    useLoanTypeStore();
 
+  useEffect(() => {
+    fetchLoanTypes();
+  }, [fetchLoanTypes]);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -50,17 +55,17 @@ export function LoansPage() {
   });
 
   const filteredLoans = useMemo(() => {
-    return loans.filter((loan) => {
-      const matchesSearch =
-        loan.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        loan.loan_name?.toLowerCase().includes(searchQuery.toLowerCase());
+    return loanTypes.filter((loan) => {
+      const matchesSearch = loan.loan_name
+        ?.toLowerCase()
+        .includes(searchQuery.toLowerCase());
 
       const matchesStatus =
         statusFilter === "all" || loan.status === statusFilter;
 
       return matchesSearch && matchesStatus;
     });
-  }, [loans, searchQuery, statusFilter]);
+  }, [loanTypes, searchQuery, statusFilter]);
 
   const handleOpenDialog = (loan) => {
     if (loan) {
@@ -92,7 +97,7 @@ export function LoansPage() {
     setEditingLoan(null);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     const loanData = {
@@ -104,32 +109,57 @@ export function LoansPage() {
       service_fee: parseInt(formData.service_fee),
     };
 
-    if (editingLoan) {
-      updateLoan(editingLoan.id, loanData);
-      toast.success("Loan updated successfully");
+    const res = await createLoanType(loanData);
+
+    if (res.error) {
+      toast.error(res.error.message || "Failed to create loan");
+      return;
     } else {
-      addLoan(loanData);
       toast.success("Loan created successfully");
     }
-
     handleCloseDialog();
   };
 
-  const handleDelete = (loan) => {
-    if (window.confirm(`Are you sure you want to delete loan ${loan.id}?`)) {
-      deleteLoan(loan.id);
-      toast.success("Loan deleted successfully");
+  const handleDelete = async (loan) => {
+    if (
+      window.confirm(`Are you sure you want to delete loan ${loan.loan_name}?`)
+    ) {
+      const res = await updateArchive(loan.id);
+      if (res.error) {
+        toast.error(res.error.message || "Failed to delete loan");
+        return;
+      } else {
+        toast.success("Loan deleted successfully");
+      }
     }
   };
 
   // ✅ ALWAYS 15th & LAST DAY OF MONTH + YEAR
-  function generateDates(term) {
-    if (!term || term <= 0) return [];
+  function generateDates() {
+    const { service_fee, loan_amount, interest_rate, term_months, loan_type } =
+      formData;
+    if (!service_fee && !loan_amount && !interest_rate && !term_months) {
+      return true;
+    }
+
+    const computedMonthlyPayment = () => {
+      if (loan_type === "Member") {
+        return (
+          (Number(loan_amount) * (Number(interest_rate) / 100) +
+            Number(loan_amount)) /
+          Number(term_months)
+        );
+      } else if (loan_type === "Associate") {
+        return Number(loan_amount);
+      } else {
+        return Number(loan_amount);
+      }
+    };
 
     const dates = [];
     let current = new Date();
 
-    for (let i = 0; i < term; i++) {
+    for (let i = 0; i < parseInt(term_months); i++) {
       const year = current.getFullYear();
       const month = current.getMonth();
 
@@ -146,11 +176,12 @@ export function LoansPage() {
       }
 
       dates.push(
-        nextDate.toLocaleDateString("en-US", {
+        `${nextDate.toLocaleDateString("en-US", {
           month: "long",
           day: "numeric",
           year: "numeric",
-        }),
+        })} - ₱${computedMonthlyPayment()} 
+        `,
       );
 
       current = new Date(nextDate);
@@ -161,9 +192,15 @@ export function LoansPage() {
   }
 
   // ✅ Reactive update
+
+  const handleOnChange = (field, value) => {
+    const updatedFormData = { ...formData, [field]: value };
+    setFormData(updatedFormData);
+  };
+
   const generatedDates = useMemo(() => {
     return generateDates(parseInt(formData.term_months));
-  }, [formData.term_months]);
+  }, [formData]);
 
   return (
     <div className="space-y-6">
@@ -211,7 +248,6 @@ export function LoansPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Loan ID</TableHead>
                     <TableHead>Name</TableHead>
                     <TableHead>Type</TableHead>
                     <TableHead>Amount</TableHead>
@@ -225,7 +261,6 @@ export function LoansPage() {
                 <TableBody>
                   {filteredLoans.map((loan) => (
                     <TableRow key={loan.id}>
-                      <TableCell>{loan.id}</TableCell>
                       <TableCell>{loan.loan_name}</TableCell>
                       <TableCell>{loan.loan_type}</TableCell>
                       <TableCell>
@@ -236,20 +271,6 @@ export function LoansPage() {
                       <TableCell>{loan.service_fee}%</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                          <Link to={`/loans/${loan.id}`}>
-                            <Button size="icon" variant="ghost">
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                          </Link>
-
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => handleOpenDialog(loan)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-
                           <Button
                             size="icon"
                             variant="ghost"
@@ -283,20 +304,15 @@ export function LoansPage() {
                 <Label>Loan Type</Label>
                 <Select
                   value={formData.loan_type}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, loan_type: value })
-                  }
+                  onValueChange={(value) => handleOnChange("loan_type", value)}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select loan type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Member Regular Loan">
-                      Member Regular Loan
-                    </SelectItem>
-                    <SelectItem value="Associate Regular Loan">
-                      Associate Regular Loan
-                    </SelectItem>
+                    <SelectItem value="Member">Member </SelectItem>
+                    <SelectItem value="Associate ">Associate</SelectItem>
+                    <SelectItem value="Special ">Special</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -305,12 +321,7 @@ export function LoansPage() {
                 <Label>Loan Name</Label>
                 <Input
                   value={formData.loan_name}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      loan_name: e.target.value,
-                    })
-                  }
+                  onChange={(e) => handleOnChange("loan_name", e.target.value)}
                 />
               </div>
 
@@ -320,12 +331,7 @@ export function LoansPage() {
                 min="0"
                 required
                 value={formData.loan_amount}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    loan_amount: e.target.value,
-                  })
-                }
+                onChange={(e) => handleOnChange("loan_amount", e.target.value)}
               />
 
               <Label>Interest</Label>
@@ -335,10 +341,7 @@ export function LoansPage() {
                 required
                 value={formData.interest_rate}
                 onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    interest_rate: e.target.value,
-                  })
+                  handleOnChange("interest_rate", e.target.value)
                 }
               />
 
@@ -348,12 +351,15 @@ export function LoansPage() {
                 min="0"
                 required
                 value={formData.term_months}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    term_months: e.target.value,
-                  })
-                }
+                onChange={(e) => handleOnChange("term_months", e.target.value)}
+              />
+
+              <Label>Service Fee %</Label>
+              <Input
+                type="number"
+                min="0"
+                value={formData.service_fee}
+                onChange={(e) => handleOnChange("service_fee", e.target.value)}
               />
 
               {/* ✅ Payment Dates */}
@@ -376,18 +382,6 @@ export function LoansPage() {
                   )}
                 </div>
               )}
-              <Label>Service Fee %</Label>
-              <Input
-                type="number"
-                min="0"
-                value={formData.service_fee}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    service_fee: e.target.value,
-                  })
-                }
-              />
             </div>
 
             <DialogFooter>

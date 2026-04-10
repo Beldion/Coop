@@ -237,7 +237,7 @@ export function UsersPage() {
         onOpenChange={setDialogOpen}
         className="w-full max-w-[90%]"
       >
-        <DialogContent>
+        <DialogContent className="max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {editingUser ? "Edit User" : "Add New User"}

@@ -16,6 +16,10 @@ import { LoanDetailsPage } from "./pages/loanDetails";
 
 import { Toaster } from "sonner";
 import ProfilePage from "./pages/profilePage";
+import { LoanType } from "./pages/loanType";
+import RestructuringPage from "./pages/restructuring";
+import ApprovalsPage from "./pages/approvals";
+import ReportsPage from "./pages/reports";
 
 function App() {
   return (
@@ -55,6 +59,47 @@ function App() {
             }
           />
 
+          <Route
+            path="/loans/types"
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <LoanType />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/reports"
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <ReportsPage />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/restructuring"
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <RestructuringPage />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/approvals"
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <ApprovalsPage />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/loans/:loanId"
             element={

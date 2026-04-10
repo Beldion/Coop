@@ -12,12 +12,22 @@ import {
   LogOut,
   Menu,
   X,
+  FileText,
+  BarChart3,
+  ClipboardList,
+  Files,
 } from "lucide-react";
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "Users", href: "/users", icon: Users },
+  { name: "Reports", href: "/reports", icon: BarChart3 },
+  { name: "Restructuring", href: "/restructuring", icon: ClipboardList },
+  { name: "Approvals", href: "/approvals", icon: Files },
+
   { name: "Loans", href: "/loans", icon: Wallet },
+  { name: "Loan Types", href: "/loans/types", icon: CreditCard },
+
   { name: "Payments", href: "/payments", icon: CreditCard },
   { name: "Ledger", href: "/ledger", icon: BookOpen },
 ];
@@ -29,7 +39,7 @@ export function AppLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="w-full pl-[255px] min-h-screen bg-background">
+    <div className="w-full lg:pl-[255px] min-h-screen bg-background">
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
         <div
