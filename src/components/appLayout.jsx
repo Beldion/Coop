@@ -25,7 +25,6 @@ const navigation = [
   { name: "Restructuring", href: "/restructuring", icon: ClipboardList },
   { name: "Approvals", href: "/approvals", icon: Files },
 
-  { name: "Loans", href: "/loans", icon: Wallet },
   { name: "Loan Types", href: "/loans/types", icon: CreditCard },
 
   { name: "Payments", href: "/payments", icon: CreditCard },
