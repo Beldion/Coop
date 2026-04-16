@@ -19,16 +19,21 @@ import {
 } from "lucide-react";
 
 const navigation = [
-  { name: "Dashboard", href: "/", icon: LayoutDashboard },
-  { name: "Users", href: "/users", icon: Users },
+  { name: "Dashboard", href: "/", icon: LayoutDashboard, isAdmin: false },
+  { name: "Users", href: "/users", icon: Users, isAdmin: true },
   { name: "Reports", href: "/reports", icon: BarChart3 },
-  { name: "Restructuring", href: "/restructuring", icon: ClipboardList },
-  { name: "Approvals", href: "/approvals", icon: Files },
+  {
+    name: "Restructuring",
+    href: "/restructuring",
+    icon: ClipboardList,
+    isAdmin: true,
+  },
+  { name: "Approvals", href: "/approvals", icon: Files, isAdmin: true },
 
-  { name: "Loan Types", href: "/loans/types", icon: CreditCard },
+  { name: "Loan Types", href: "/loans/types", icon: CreditCard, isAdmin: true },
 
-  { name: "Payments", href: "/payments", icon: CreditCard },
-  { name: "Ledger", href: "/ledger", icon: BookOpen },
+  { name: "Payments", href: "/payments", icon: CreditCard, isAdmin: true },
+  { name: "Ledger", href: "/ledger", icon: BookOpen, isAdmin: true },
 ];
 
 export function AppLayout({ children }) {
@@ -73,8 +78,9 @@ export function AppLayout({ children }) {
               const isActive = location.pathname === item.href;
 
               if (
-                (user?.role != "admin" && item.name == "Users") ||
-                (user?.role != "admin" && item.name == "Loan Types")
+                user?.role == "member" &&
+                item.isAdmin == true
+                // (user?.role == "admin" && item.name == "Loan Types")
               )
                 return true;
               return (
