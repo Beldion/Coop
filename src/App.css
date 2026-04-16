@@ -8,6 +8,10 @@
   width: 100%;
 }
 
+html {
+  font-size: 18px;
+}
+
 :root {
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
@@ -137,6 +141,6 @@
   }
 }
 
-.text-sm {
+/* .text-sm {
   font-size: 1.2rem;
-}
+} */

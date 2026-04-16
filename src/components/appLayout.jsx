@@ -39,7 +39,7 @@ export function AppLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="w-full lg:pl-[255px] min-h-screen bg-background">
+    <div className="w-full lg:pl-[16rem] min-h-screen bg-background">
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
         <div
@@ -73,7 +73,11 @@ export function AppLayout({ children }) {
             {navigation.map((item) => {
               const isActive = location.pathname === item.href;
 
-              if (user?.role != "admin" && item.name == "Users") return true;
+              if (
+                (user?.role != "admin" && item.name == "Users") ||
+                (user?.role != "admin" && item.name == "Loan Types")
+              )
+                return true;
               return (
                 <Link
                   key={item.name}

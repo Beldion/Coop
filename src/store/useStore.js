@@ -284,10 +284,12 @@ export const useLoanTypeStore = create((set, get) => ({
       return { error };
     }
 
-    console.log("Fetching loan types...", data);
-
+    const updatedData = data.map((item) => ({
+      ...item,
+      isApplied: false,
+    }));
     set({
-      loanTypes: data,
+      loanTypes: updatedData,
       loading: false,
     });
   },
@@ -330,7 +332,7 @@ export const useLoanTypeStore = create((set, get) => ({
 
     // ✅ Option 1: optimistic update (no refetch)
     set((state) => ({
-      loanTypes: [data[0], ...state.loanTypes],
+      loanTypes: data,
       loading: false,
     }));
 
@@ -364,6 +366,126 @@ export const useLoanTypeStore = create((set, get) => ({
     }));
 
     return { data };
+  },
+}));
+
+export const userLoanStore = create((set) => ({
+  userLoans: [],
+  userLoanTypes: [],
+  loading: false,
+
+  fetchUserLoan: async () => {
+    set({ loading: true });
+
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      set({ loading: false });
+
+      return { error: { message: "User not authenticated" } };
+    }
+
+    const { data: userLoan, error: userLoanError } = await supabase
+      .from("loans")
+      .select("*")
+      .eq("member_id", user.id);
+
+    if (userLoanError) {
+      set({ loading: false });
+      return { error: userLoanError };
+    }
+
+    set({
+      userLoans: userLoan,
+      loading: false,
+    });
+  },
+
+  fetchUserLoanTypes: async () => {
+    set({ loading: true });
+
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      set({ loading: false });
+
+      return { error: { message: "User not authenticated" } };
+    }
+
+    const { data: userLoan, error: userLoanError } = await supabase
+      .from("loans")
+      .select("*")
+      .eq("member_id", user.id);
+
+    if (userLoanError) {
+      set({ loading: false });
+      console.log("User not authenticated:", userLoanError);
+      return { error: userLoanError };
+    }
+    const { data, error } = await supabase
+      .from("loan_type")
+      .select("*")
+      .eq("archive", false);
+
+    if (error) {
+      set({ loading: false });
+      return { error };
+    }
+
+    const updatedData = data.map((item) => ({
+      ...item,
+      isApplied: userLoan.some((l) => l.loan_type_id === item.id),
+    }));
+
+    console.log("Updated loan types with user applications:", updatedData);
+    set({
+      userLoanTypes: updatedData,
+      loading: false,
+    });
+  },
+  createUserLoan: async (loanTypeid) => {
+    set({ loading: true });
+    // get current logged-in user
+    console.log("Creating user loan for loan type ID:", loanTypeid);
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      return { error: { message: "User not authenticated" } };
+    }
+
+    const { data, error } = await supabase
+      .from("loans")
+      .insert([
+        {
+          member_id: user.id,
+          loan_type_id: loanTypeid,
+          status: "pending",
+        },
+      ])
+      .select();
+
+    console.log("Create user loan response:", { data, error });
+
+    if (error) {
+      set({ loading: false });
+      return { error };
+    }
+
+    set({
+      userLoans: data,
+      loading: false,
+    });
+
+    return data;
   },
 }));
 // MAIN STORE
