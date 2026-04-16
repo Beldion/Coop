@@ -31,7 +31,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Search, Eye, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useLoanTypeStore } from "@/store/useStore";
-import { set } from "date-fns";
+import { generateDates } from "@/lib/utils";
 
 export function LoanType() {
   const { loanTypes, fetchLoanTypes, updateArchive, createLoanType } =
@@ -134,63 +134,6 @@ export function LoanType() {
     }
   };
 
-  // ✅ ALWAYS 15th & LAST DAY OF MONTH + YEAR
-  function generateDates() {
-    const { service_fee, loan_amount, interest_rate, term_months, loan_type } =
-      formData;
-    if (!service_fee && !loan_amount && !interest_rate && !term_months) {
-      return true;
-    }
-
-    const computedMonthlyPayment = () => {
-      if (loan_type === "Member") {
-        return (
-          (Number(loan_amount) * (Number(interest_rate) / 100) +
-            Number(loan_amount)) /
-          Number(term_months)
-        );
-      } else if (loan_type === "Associate") {
-        return Number(loan_amount);
-      } else {
-        return Number(loan_amount);
-      }
-    };
-
-    const dates = [];
-    let current = new Date();
-
-    for (let i = 0; i < parseInt(term_months); i++) {
-      const year = current.getFullYear();
-      const month = current.getMonth();
-
-      const lastDayOfMonth = new Date(year, month + 1, 0).getDate();
-
-      let nextDate;
-
-      if (current.getDate() < 15) {
-        nextDate = new Date(year, month, 15);
-      } else if (current.getDate() < lastDayOfMonth) {
-        nextDate = new Date(year, month, lastDayOfMonth);
-      } else {
-        nextDate = new Date(year, month + 1, 15);
-      }
-
-      dates.push(
-        `${nextDate.toLocaleDateString("en-US", {
-          month: "long",
-          day: "numeric",
-          year: "numeric",
-        })} - ₱${computedMonthlyPayment()} 
-        `,
-      );
-
-      current = new Date(nextDate);
-      current.setDate(current.getDate() + 1);
-    }
-    console.log("Generated Dates:", dates);
-    return dates;
-  }
-
   // ✅ Reactive update
 
   const handleOnChange = (field, value) => {
@@ -199,7 +142,15 @@ export function LoanType() {
   };
 
   const generatedDates = useMemo(() => {
-    return generateDates(parseInt(formData.term_months));
+    const { service_fee, loan_amount, interest_rate, term_months, loan_type } =
+      formData;
+    return generateDates(
+      service_fee,
+      loan_amount,
+      interest_rate,
+      term_months,
+      loan_type,
+    );
   }, [formData]);
 
   return (
@@ -225,6 +176,7 @@ export function LoanType() {
             <div className="relative flex-1 max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
+                required
                 placeholder="Search by loan ID or name..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -311,8 +263,8 @@ export function LoanType() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Member">Member </SelectItem>
-                    <SelectItem value="Associate ">Associate</SelectItem>
-                    <SelectItem value="Special ">Special</SelectItem>
+                    <SelectItem value="Associate">Associate</SelectItem>
+                    <SelectItem value="Special">Special</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -320,6 +272,7 @@ export function LoanType() {
               <div className="space-y-2">
                 <Label>Loan Name</Label>
                 <Input
+                  required
                   value={formData.loan_name}
                   onChange={(e) => handleOnChange("loan_name", e.target.value)}
                 />
@@ -358,6 +311,7 @@ export function LoanType() {
               <Input
                 type="number"
                 min="0"
+                required
                 value={formData.service_fee}
                 onChange={(e) => handleOnChange("service_fee", e.target.value)}
               />
@@ -365,7 +319,7 @@ export function LoanType() {
               {/* ✅ Payment Dates */}
               {generatedDates.length > 0 && (
                 <div className="text-sm text-muted-foreground">
-                  <p>Payment Dates:</p>
+                  <p>Sample Computations:</p>
 
                   {generatedDates.length === 1 ? (
                     <p>{generatedDates[0]}</p>
