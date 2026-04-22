@@ -118,10 +118,6 @@ export function UsersPage() {
             Manage members, staff, and administrators
           </p>
         </div>
-        <Button onClick={() => handleOpenDialog()}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add User
-        </Button>
       </div>
 
       <Card>

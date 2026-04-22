@@ -20,6 +20,7 @@ import { LoanType } from "./pages/loanType";
 import RestructuringPage from "./pages/restructuring";
 import ApprovalsPage from "./pages/approvals";
 import ReportsPage from "./pages/reports";
+import CoBorrowersPage from "./pages/coborrower";
 
 function App() {
   return (
@@ -32,6 +33,17 @@ function App() {
               <ProtectedRoute>
                 <AppLayout>
                   <Dashboard />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/coborrowers"
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <CoBorrowersPage />
                 </AppLayout>
               </ProtectedRoute>
             }

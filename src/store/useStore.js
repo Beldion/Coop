@@ -369,6 +369,56 @@ export const useLoanTypeStore = create((set, get) => ({
   },
 }));
 
+export const useSearchUsersStore = create((set) => ({
+  users: [],
+  search: "",
+  loading: false,
+
+  setSearch: (value) => set({ search: value }),
+
+  fetchUsers: async (value = "") => {
+    if (value.trim() === "") {
+      set({ users: [], loading: false });
+      return;
+    }
+
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      set({ loading: false });
+
+      return { error: { message: "User not authenticated" } };
+    }
+
+    set({ loading: true });
+    let query = supabase
+      .from("users")
+      .select("id, first_name, last_name, middle_name, role")
+      .neq("id", user.id)
+      .neq("role", "admin")
+      .neq("role", "approver-1")
+      .neq("role", "approver-2")
+      .order("first_name", { ascending: true });
+
+    if (value.trim()) {
+      query = query.or(`first_name.ilike.%${value}%`);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.log("Error fetching users:", error.message);
+      set({ users: [], loading: false });
+      return;
+    }
+
+    set({ users: data || [], loading: false });
+  },
+}));
+
 export const userLoanStore = create((set) => ({
   userLoans: [],
   userLoanTypes: [],
@@ -438,10 +488,13 @@ export const userLoanStore = create((set) => ({
       return { error };
     }
 
-    const updatedData = data.map((item) => ({
-      ...item,
-      isApplied: userLoan.some((l) => l.loan_type_id === item.id),
-    }));
+    const updatedData = data.map((item) => {
+      const status = userLoan.find((l) => l.loan_type_id === item.id);
+      return {
+        ...item,
+        isStatus: status ? status.status : null,
+      };
+    });
 
     console.log("Updated loan types with user applications:", updatedData);
     set({
@@ -449,7 +502,7 @@ export const userLoanStore = create((set) => ({
       loading: false,
     });
   },
-  createUserLoan: async (loanTypeid) => {
+  createUserLoan: async (loanTypeid, coborrowerId = null, termsAccepted) => {
     set({ loading: true });
     // get current logged-in user
     console.log("Creating user loan for loan type ID:", loanTypeid);
@@ -469,6 +522,10 @@ export const userLoanStore = create((set) => ({
           member_id: user.id,
           loan_type_id: loanTypeid,
           status: "pending",
+          coborrower_status: "pending",
+
+          coborrower_id: coborrowerId,
+          terms_and_conditions: termsAccepted,
         },
       ])
       .select();
@@ -484,6 +541,87 @@ export const userLoanStore = create((set) => ({
       userLoans: data,
       loading: false,
     });
+
+    return data;
+  },
+}));
+
+export const useCoBorrowerStore = create((set) => ({
+  coBorrowers: [],
+  loading: false,
+
+  fetchCoborrowerLoan: async () => {
+    set({ loading: true });
+
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      set({ loading: false });
+      console.log("Error fetching co-borrower loans:", userLoanError);
+
+      return { error: { message: "User not authenticated" } };
+    }
+
+    const { data: userLoan, error: userLoanError } = await supabase
+      .from("loans")
+      .select(
+        `
+      *,
+      member:member_id (*),
+      loan_type:loan_type_id (*)
+    `,
+      )
+      .eq("coborrower_id", user.id);
+
+    if (userLoanError) {
+      set({ loading: false });
+      return { error: userLoanError };
+    }
+    console.log("Coborrower loans fetched:", userLoan);
+    set({
+      coBorrowers: userLoan,
+      loading: false,
+    });
+  },
+
+  rejectLoans: async (loanId, status) => {
+    set({ loading: true });
+
+    const { data, error } = await supabase
+      .from("loans")
+      .update({
+        coborrower_status: status,
+        coborrower_status_date: new Date().toISOString(),
+      })
+      .eq("id", loanId)
+      .select();
+
+    if (error) {
+      console.error("Update error:", error);
+      return error;
+    }
+
+    return data;
+  },
+  approveLoans: async (loanId, status) => {
+    set({ loading: true });
+
+    const { data, error } = await supabase
+      .from("loans")
+      .update({
+        coborrower_status: status,
+        coborrower_status_date: new Date().toISOString(),
+      })
+      .eq("id", loanId)
+      .select();
+
+    if (error) {
+      console.error("Update error:", error);
+      return error;
+    }
 
     return data;
   },

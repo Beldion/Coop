@@ -15,7 +15,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { userLoanStore } from "@/store/useStore";
+import { userLoanStore, useSearchUsersStore } from "@/store/useStore";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -23,12 +25,14 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Plus, Search, Pencil, Trash2, Edit, Save, X, Eye } from "lucide-react";
 
 import { generateDates } from "@/lib/utils";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { Label } from "@/components/ui/label";
 export default function Dashboard() {
   const {
     userLoans,
@@ -38,12 +42,26 @@ export default function Dashboard() {
     fetchUserLoanTypes,
   } = userLoanStore();
 
+  const { users, search, loading, setSearch, fetchUsers } =
+    useSearchUsersStore();
   const [selectedLoanType, setSelectedLoanType] = useState(null);
 
   useEffect(() => {
     fetchUserLoanTypes();
     fetchUserLoan();
   }, [fetchUserLoanTypes, fetchUserLoan, userLoans]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchUsers(search);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [search, fetchUsers]);
+
+  useEffect(() => {
+    fetchUsers("");
+  }, [fetchUsers]);
 
   const handleCloseDialog = () => {
     setSelectedLoanType(null);
@@ -85,7 +103,18 @@ export default function Dashboard() {
 
   const handleApplyLoan = async () => {
     if (!selectedLoanType) return;
-    const res = await createUserLoan(selectedLoanType.loan_id);
+
+    if (selectedLoanType.accepted !== true) {
+      toast.error(
+        "You must accept the terms and conditions to apply for this loan",
+      );
+      return;
+    }
+    const res = await createUserLoan(
+      selectedLoanType.loan_id,
+      selectedLoanType.coborrower,
+      selectedLoanType.accepted,
+    );
 
     console.log("create loan res", res);
     if (res.error) {
@@ -119,51 +148,84 @@ export default function Dashboard() {
           <CardContent>
             {userLoanTypes.length === 0 ? (
               <div className="text-center py-12">
-                <p className="text-muted-foreground">No available loans</p>
+                <p className="text-muted-foreground">No loans available</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
-                {userLoanTypes.map((loanType) => (
-                  <Card key={loanType.id} className="border">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2">
-                      <CardTitle className="text-2xl font-medium text-muted-foreground">
-                        {loanType.loan_name}
-                      </CardTitle>
-                      <CardTitle className="text-lg font-medium text-muted-foreground">
-                        {loanType.loan_type}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold">
-                        ₱{loanType.loan_amount.toLocaleString()}
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Loan Amount
-                      </p>
-                    </CardContent>
-                    <CardFooter className="mt-auto">
-                      {loanType.isApplied ? (
-                        <Button
-                          variant="outline"
-                          size="lg"
-                          className="w-full bg-orange-100 text-orange-800"
-                          disabled
-                        >
-                          Already Applied
-                        </Button>
-                      ) : (
-                        <Button
-                          variant="outline"
-                          size="lg"
-                          className="w-full"
-                          onClick={() => handleOpenDialog(loanType)}
-                        >
-                          Apply Loan
-                        </Button>
-                      )}
-                    </CardFooter>
-                  </Card>
-                ))}
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Amount</TableHead>
+                      <TableHead>Loan Name</TableHead>
+                      <TableHead>Loan Type</TableHead>
+
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {userLoanTypes.map((item) => (
+                      <TableRow key={item.loan_id}>
+                        <TableCell className="font-medium text-lg">
+                          ₱{item.loan_amount.toLocaleString()}
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          {item.loan_name}
+                        </TableCell>
+
+                        <TableCell className="font-medium">
+                          <span
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                              item.loan_type === "Member"
+                                ? "bg-green-100 text-green-700 border-green-300"
+                                : item.loan_type === "Associate"
+                                  ? "bg-blue-100 text-blue-700 border-blue-300"
+                                  : "bg-purple-100 text-purple-700 border-purple-300"
+                            }`}
+                          >
+                            {item.loan_type}
+                          </span>
+                        </TableCell>
+
+                        <TableCell>
+                          <div className="flex  gap-2">
+                            {item.isStatus == "pending" ? (
+                              <p className="flex rounded-full px-2.5 py-0.5 text-xs gap-1 bg-yellow-100 text-yellow-700 border-yellow-300">
+                                {item.isStatus}
+                              </p>
+                            ) : item.isStatus == "approved" ? (
+                              <p className="flex rounded-full px-2.5 py-0.5 text-xs gap-1 bg-green-100 text-green-700 border-green-300">
+                                {item.isStatus}
+                              </p>
+                            ) : item.isStatus == "rejected" ? (
+                              <p className="flex rounded-full px-2.5 py-0.5 text-xs gap-1 bg-red-100 text-red-700 border-red-300">
+                                ✘ {item.isStatus}
+                              </p>
+                            ) : (
+                              ""
+                            )}
+                          </div>
+                        </TableCell>
+
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            {item.isStatus ? (
+                              ""
+                            ) : (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleOpenDialog(item)}
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </div>
             )}
           </CardContent>
@@ -171,7 +233,7 @@ export default function Dashboard() {
         {/* Recent Transactions */}
         <Card>
           <CardHeader>
-            <CardTitle>Loans</CardTitle>
+            <CardTitle>Your Loans</CardTitle>
           </CardHeader>
           <CardContent>
             {userLoans.length === 0 ? (
@@ -272,7 +334,42 @@ export default function Dashboard() {
             <p className="text-lg pb-2 border-b boder-muted-foreground">
               Service Fee: {selectedLoanType?.service_fee}%
             </p>
+            <div className="space-y-4">
+              <Label htmlFor="search" className="text-sm">
+                Search for co-borrower (optional)
+              </Label>
+              <Input
+                placeholder="Search user..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
 
+              {loading ? (
+                <p>Loading...</p>
+              ) : (
+                <div className="space-y-2">
+                  {users.map((user) => (
+                    <div
+                      key={user.id}
+                      className={`flex items-center gap-4 border rounded-lg p-3 cursor-pointer hover:bg-muted ${user.id === selectedLoanType?.coborrower ? "bg-muted" : ""}`}
+                      onClick={() => {
+                        setSelectedLoanType((prev) => ({
+                          ...prev,
+                          coborrower: user.id,
+                        }));
+                        console.log("selected coborrower", selectedLoanType);
+                      }}
+                    >
+                      <p>
+                        {user.first_name} {user.middle_name} {user.last_name}
+                      </p>
+                      <p>{user.email}</p>
+                      <p>{user.role}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
             {generatedDates && generatedDates.length > 0 && (
               <div className="text-sm text-muted-foreground">
                 <p className="mb-2 text-md">Sample Computations:</p>
@@ -289,13 +386,67 @@ export default function Dashboard() {
                       return acc;
                     }, [])
                     .map((range, index) => (
-                      <p className="py-0.5" key={index}>
+                      <p key={index} className="py-0.5">
                         {range}
                       </p>
                     ))
                 )}
               </div>
             )}
+
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <Checkbox
+                  id="terms"
+                  required
+                  checked={selectedLoanType?.accepted || false}
+                  onCheckedChange={(checked) =>
+                    setSelectedLoanType((prev) => ({
+                      ...prev,
+                      accepted: checked,
+                    }))
+                  }
+                />
+
+                <label htmlFor="terms" className="text-md ">
+                  I agree to the
+                  <Dialog>
+                    <DialogTrigger>
+                      <button
+                        type="button"
+                        className="text-blue-600 underline hover:text-blue-800"
+                      >
+                        Terms and Conditions
+                      </button>
+                    </DialogTrigger>
+
+                    <DialogContent className="max-w-lg">
+                      <DialogHeader>
+                        <DialogTitle>Terms and Conditions</DialogTitle>
+                        <DialogDescription>
+                          Please read these terms carefully before continuing.
+                        </DialogDescription>
+                      </DialogHeader>
+
+                      <div className="max-h-[400px] overflow-y-auto text-sm text-gray-700 space-y-3">
+                        <p>
+                          By using this service, you agree to comply with all
+                          applicable rules and policies.
+                        </p>
+                        <p>
+                          Your information will be handled according to our
+                          privacy policy.
+                        </p>
+                        <p>
+                          We may update these terms from time to time without
+                          prior notice.
+                        </p>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </label>
+              </div>
+            </div>
 
             <DialogFooter>
               <Button variant="outline" onClick={handleCloseDialog}>
