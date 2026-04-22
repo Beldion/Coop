@@ -20,8 +20,15 @@ import {
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard, isAdmin: false },
+  {
+    name: "Co-Borrowers",
+    href: "/coborrowers",
+    icon: LayoutDashboard,
+    isAdmin: false,
+  },
+
   { name: "Users", href: "/users", icon: Users, isAdmin: true },
-  { name: "Reports", href: "/reports", icon: BarChart3 },
+  { name: "Reports", href: "/reports", icon: BarChart3, isAdmin: true },
   {
     name: "Restructuring",
     href: "/restructuring",
@@ -87,7 +94,7 @@ export function AppLayout({ children }) {
                 <Link
                   key={item.name}
                   to={item.href}
-                  className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  className={`flex items-center gap-3 px-3 py-2 rounded-lg text-md font-medium transition-colors ${
                     isActive
                       ? "bg-primary text-primary-foreground"
                       : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
@@ -112,8 +119,8 @@ export function AppLayout({ children }) {
                   </span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{user?.name}</p>
-                  <p className="text-xs text-muted-foreground truncate">
+                  <p className="text-lg font-medium truncate">{user?.name}</p>
+                  <p className="text-md text-muted-foreground truncate">
                     {user?.email}
                   </p>
                 </div>
