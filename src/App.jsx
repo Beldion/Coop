@@ -39,6 +39,17 @@ function App() {
           />
 
           <Route
+            path="/approvals"
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <ApprovalsPage />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
             path="/coborrowers"
             element={
               <ProtectedRoute>

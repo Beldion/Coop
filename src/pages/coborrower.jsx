@@ -37,9 +37,7 @@ import { Plus, Search, Pencil, Trash2, Edit, Save, X, Eye } from "lucide-react";
 
 import { generateDates } from "@/lib/utils";
 import { toast } from "sonner";
-import { format, set } from "date-fns";
-import { Label } from "@/components/ui/label";
-import { se } from "date-fns/locale";
+import { format } from "date-fns";
 export default function CoBorrowersPage() {
   const { coBorrowers, rejectLoans, approveLoans, fetchCoborrowerLoan } =
     useCoBorrowerStore();

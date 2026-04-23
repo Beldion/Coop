@@ -165,41 +165,41 @@ export default function Dashboard() {
                   </TableHeader>
                   <TableBody>
                     {userLoanTypes.map((item) => (
-                      <TableRow key={item.loan_id}>
+                      <TableRow key={item?.loan_id}>
                         <TableCell className="font-medium text-lg">
-                          ₱{item.loan_amount.toLocaleString()}
+                          ₱{item?.loan_amount.toLocaleString()}
                         </TableCell>
                         <TableCell className="font-medium">
-                          {item.loan_name}
+                          {item?.loan_name}
                         </TableCell>
 
                         <TableCell className="font-medium">
                           <span
                             className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              item.loan_type === "Member"
+                              item?.loan_type === "Member"
                                 ? "bg-green-100 text-green-700 border-green-300"
-                                : item.loan_type === "Associate"
+                                : item?.loan_type === "Associate"
                                   ? "bg-blue-100 text-blue-700 border-blue-300"
                                   : "bg-purple-100 text-purple-700 border-purple-300"
                             }`}
                           >
-                            {item.loan_type}
+                            {item?.loan_type}
                           </span>
                         </TableCell>
 
                         <TableCell>
                           <div className="flex  gap-2">
-                            {item.isStatus == "pending" ? (
+                            {item?.isStatus == "pending" ? (
                               <p className="flex rounded-full px-2.5 py-0.5 text-xs gap-1 bg-yellow-100 text-yellow-700 border-yellow-300">
-                                {item.isStatus}
+                                {item?.isStatus}
                               </p>
-                            ) : item.isStatus == "approved" ? (
+                            ) : item?.isStatus == "approved" ? (
                               <p className="flex rounded-full px-2.5 py-0.5 text-xs gap-1 bg-green-100 text-green-700 border-green-300">
-                                {item.isStatus}
+                                {item?.isStatus}
                               </p>
-                            ) : item.isStatus == "rejected" ? (
+                            ) : item?.isStatus == "rejected" ? (
                               <p className="flex rounded-full px-2.5 py-0.5 text-xs gap-1 bg-red-100 text-red-700 border-red-300">
-                                ✘ {item.isStatus}
+                                ✘ {item?.isStatus}
                               </p>
                             ) : (
                               ""
@@ -209,7 +209,7 @@ export default function Dashboard() {
 
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-2">
-                            {item.isStatus ? (
+                            {item?.isStatus ? (
                               ""
                             ) : (
                               <Button
@@ -256,31 +256,37 @@ export default function Dashboard() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {userLoans.map((loan) => (
-                      <TableRow key={loan.id}>
-                        <TableCell className="font-medium">Loan Name</TableCell>
+                    {userLoans.map((item) => (
+                      <TableRow key={item.id}>
+                        <TableCell className="font-medium">
+                          {item.loan_type.loan_name}
+                        </TableCell>
 
                         <TableCell className="font-medium">
-                          loan type name
+                          {item.loan_type.loan_type}
                         </TableCell>
-                        <TableCell>{loan.approver_id}</TableCell>
-                        <TableCell>Co borrower name</TableCell>
+                        <TableCell>{item.approver_id}</TableCell>
+                        <TableCell>
+                          {item?.coborrower?.first_name}{" "}
+                          {item?.coborrower?.middle_name}{" "}
+                          {item?.coborrower?.last_name}
+                        </TableCell>
                         <TableCell>
                           <span
                             className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              loan.status === "admin"
+                              item.status === "admin"
                                 ? "bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400"
-                                : loan.status === "staff"
+                                : item.status === "staff"
                                   ? "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400"
                                   : "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"
                             }`}
                           >
-                            {loan.status}
+                            {item.status}
                           </span>
                         </TableCell>
 
                         <TableCell>
-                          {format(new Date(loan.created_at), "MMM dd, yyyy")}
+                          {format(new Date(item.created_at), "MMM dd, yyyy")}
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-2">
