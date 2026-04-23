@@ -440,13 +440,22 @@ export const userLoanStore = create((set) => ({
 
     const { data: userLoan, error: userLoanError } = await supabase
       .from("loans")
-      .select("*")
+      .select(
+        `
+      *,
+      member:member_id (*),
+      coborrower:coborrower_id (*),
+      loan_type:loan_type_id (*)
+    `,
+      )
       .eq("member_id", user.id);
 
     if (userLoanError) {
       set({ loading: false });
       return { error: userLoanError };
     }
+
+    console.log("User loans fetched:", userLoan);
 
     set({
       userLoans: userLoan,

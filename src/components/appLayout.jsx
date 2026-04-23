@@ -19,28 +19,57 @@ import {
 } from "lucide-react";
 
 const navigation = [
-  { name: "Dashboard", href: "/", icon: LayoutDashboard, isAdmin: false },
+  {
+    name: "Dashboard",
+    href: "/",
+    icon: LayoutDashboard,
+    role: "all",
+  },
   {
     name: "Co-Borrowers",
     href: "/coborrowers",
     icon: LayoutDashboard,
-    isAdmin: false,
+    role: "member",
   },
 
-  { name: "Users", href: "/users", icon: Users, isAdmin: true },
-  { name: "Reports", href: "/reports", icon: BarChart3, isAdmin: true },
+  {
+    name: "Users",
+    href: "/users",
+    icon: Users,
+    role: "admin",
+  },
+  {
+    name: "Reports",
+    href: "/reports",
+    icon: BarChart3,
+    role: "admin",
+  },
   {
     name: "Restructuring",
     href: "/restructuring",
     icon: ClipboardList,
-    isAdmin: true,
+    role: "admin",
   },
-  { name: "Approvals", href: "/approvals", icon: Files, isAdmin: true },
+  {
+    name: "Approvals",
+    href: "/approvals",
+    icon: Files,
+    role: "approver",
+  },
 
-  { name: "Loan Types", href: "/loans/types", icon: CreditCard, isAdmin: true },
+  {
+    name: "Loan Types",
+    href: "/loans/types",
+    icon: CreditCard,
+    role: "admin",
+  },
 
-  { name: "Payments", href: "/payments", icon: CreditCard, isAdmin: true },
-  { name: "Ledger", href: "/ledger", icon: BookOpen, isAdmin: true },
+  {
+    name: "Payments",
+    href: "/payments",
+    icon: CreditCard,
+    role: "admin",
+  },
 ];
 
 export function AppLayout({ children }) {
@@ -85,26 +114,27 @@ export function AppLayout({ children }) {
               const isActive = location.pathname === item.href;
 
               if (
-                user?.role == "member" &&
-                item.isAdmin == true
-                // (user?.role == "admin" && item.name == "Loan Types")
+                (user?.role == "member" && item.role == "member") ||
+                (user?.role == "admin" && item.role == "admin") ||
+                ((user?.role == "approver-1" || user?.role == "approver-2") &&
+                  item.role == "approver") ||
+                item.role == "all"
               )
-                return true;
-              return (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  className={`flex items-center gap-3 px-3 py-2 rounded-lg text-md font-medium transition-colors ${
-                    isActive
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                  }`}
-                  onClick={() => setSidebarOpen(false)}
-                >
-                  <item.icon className="h-5 w-5" />
-                  {item.name}
-                </Link>
-              );
+                return (
+                  <Link
+                    key={item.name}
+                    to={item.href}
+                    className={`flex items-center gap-3 px-3 py-2 rounded-lg text-md font-medium transition-colors ${
+                      isActive
+                        ? "bg-primary text-primary-foreground"
+                        : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                    }`}
+                    onClick={() => setSidebarOpen(false)}
+                  >
+                    <item.icon className="h-5 w-5" />
+                    {item.name}
+                  </Link>
+                );
             })}
           </nav>
 
