@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -9,9 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useCoBorrowerStore } from "@/store/useStore";
-import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
+
 import {
   Dialog,
   DialogContent,
@@ -38,16 +36,20 @@ import { Plus, Search, Pencil, Trash2, Edit, Save, X, Eye } from "lucide-react";
 import { generateDates } from "@/lib/utils";
 import { toast } from "sonner";
 import { format } from "date-fns";
-export default function ApprovalsPage() {
-  const { coBorrowers, rejectLoans, approveLoans, fetchCoborrowerLoan } =
-    useCoBorrowerStore();
+
+import {
+  useApproveAsApprover,
+  useFetchLoansAsApprover,
+  useRejectAsApprover,
+} from "@/api/approver";
+export default function CoBorrowersPage() {
+  const { data: loans, isLoading, isError } = useFetchLoansAsApprover();
+
+  const approveLoan = useApproveAsApprover();
+  const rejectLoan = useRejectAsApprover();
   const [selectedLoanType, setSelectedLoanType] = useState(null);
   const [rejectConfirm, setRejectConfirm] = useState(false);
   const [approveConfirm, setApproveConfirm] = useState(false);
-
-  useEffect(() => {
-    fetchCoborrowerLoan();
-  }, [fetchCoborrowerLoan, rejectLoans, approveLoans]);
 
   const handleCloseDialog = () => {
     setSelectedLoanType(null);
@@ -89,7 +91,10 @@ export default function ApprovalsPage() {
 
   const handleApprove = async () => {
     if (selectedLoanType) {
-      const res = approveLoans(selectedLoanType.loan_id, "approved");
+      const res = await approveLoan.mutateAsync({
+        loanId: selectedLoanType.loan_id,
+        status: "approved",
+      });
 
       if (res.error) {
         toast.error("Failed to approve loan application. Please try again. ");
@@ -104,7 +109,10 @@ export default function ApprovalsPage() {
 
   const handleReject = async () => {
     if (selectedLoanType) {
-      const res = rejectLoans(selectedLoanType.loan_id, "rejected");
+      const res = rejectLoan.mutateAsync({
+        loanId: selectedLoanType.loan_id,
+        status: "rejected",
+      });
 
       if (res.error) {
         toast.error("Failed to reject loan application. Please try again. ");
@@ -120,7 +128,7 @@ export default function ApprovalsPage() {
     <div className="w-full">
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold">Approvals</h1>
+          <h1 className="text-3xl font-bold">Co-borrowers</h1>
           <p className="text-muted-foreground mt-1 max-w-md ">
             Overview of your yours friends and family who are co-borrowing with
             you. You can manage your co-borrowers and view their loan details
@@ -131,10 +139,10 @@ export default function ApprovalsPage() {
         {/* Recent Transactions */}
         <Card>
           <CardHeader>
-            <CardTitle>All Loans for approvals</CardTitle>
+            <CardTitle>Your Loans</CardTitle>
           </CardHeader>
           <CardContent>
-            {coBorrowers.length === 0 ? (
+            {loans?.length === 0 ? (
               <div className="text-center py-12">
                 <p className="text-muted-foreground">No loans available</p>
               </div>
@@ -143,6 +151,8 @@ export default function ApprovalsPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead>Loan Amount</TableHead>
+
                       <TableHead>Borrower Name</TableHead>
                       <TableHead>Loan Name</TableHead>
                       <TableHead>Loan Type</TableHead>
@@ -154,8 +164,12 @@ export default function ApprovalsPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {coBorrowers.map((item) => (
+                    {loans?.map((item) => (
                       <TableRow key={item.id}>
+                        <TableCell className="font-medium">
+                          {item?.loan_type?.loan_amount?.toLocaleString()}
+                        </TableCell>
+
                         <TableCell className="font-medium">
                           {item?.member?.first_name} {item?.member?.middle_name}{" "}
                           {item?.member?.last_name}
@@ -180,17 +194,17 @@ export default function ApprovalsPage() {
 
                         <TableCell>
                           <div className="flex  gap-2">
-                            {item.coborrower_status == "pending" ? (
+                            {item?.approver_1_status == "pending" ? (
                               <p className="flex rounded-full px-2.5 py-0.5 text-xs gap-1 bg-yellow-100 text-yellow-700 border-yellow-300">
-                                {item.coborrower_status}
+                                {item?.approver_1_status}
                               </p>
-                            ) : item.coborrower_status == "approved" ? (
+                            ) : item?.approver_1_status == "approved" ? (
                               <p className="flex rounded-full px-2.5 py-0.5 text-xs gap-1 bg-green-100 text-green-700 border-green-300">
-                                {item.coborrower_status}
+                                {item?.approver_1_status}
                               </p>
-                            ) : item.coborrower_status == "rejected" ? (
+                            ) : item?.approver_1_status == "rejected" ? (
                               <p className="flex rounded-full px-2.5 py-0.5 text-xs gap-1 bg-red-100 text-red-700 border-red-300">
-                                ✘ {item.coborrower_status}
+                                ✘ {item?.approver_1_status}
                               </p>
                             ) : (
                               ""
@@ -199,7 +213,10 @@ export default function ApprovalsPage() {
                         </TableCell>
 
                         <TableCell>
-                          {format(new Date(item.created_at), "MMM dd, yyyy")}
+                          {format(
+                            new Date(item?.coborrower_status_date),
+                            "MMM dd, yyyy",
+                          )}
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-2">
@@ -318,10 +335,11 @@ export default function ApprovalsPage() {
             <AlertDialogCancel>No</AlertDialogCancel>
 
             <AlertDialogAction
+              disabled={rejectLoan.isPending}
               onClick={handleReject}
               className="bg-red-600 hover:bg-red-700"
             >
-              YES
+              {rejectLoan.isPending ? "Rejecting loan as Coborrower" : "Yes"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -342,10 +360,11 @@ export default function ApprovalsPage() {
             <AlertDialogCancel>No</AlertDialogCancel>
 
             <AlertDialogAction
+              disabled={approveLoan.isPending}
               onClick={handleApprove}
               className="bg-green-600 hover:bg-green-700"
             >
-              YES
+              {approveLoan.isPending ? "Approving loan as Coborrower" : "Yes"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

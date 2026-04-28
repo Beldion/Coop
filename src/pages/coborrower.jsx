@@ -38,16 +38,19 @@ import { Plus, Search, Pencil, Trash2, Edit, Save, X, Eye } from "lucide-react";
 import { generateDates } from "@/lib/utils";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import {
+  useApproveAsCoborrower,
+  useFetchLoansAsCoborrower,
+  useRejectAsCoborrower,
+} from "@/api/coborrowers";
 export default function CoBorrowersPage() {
-  const { coBorrowers, rejectLoans, approveLoans, fetchCoborrowerLoan } =
-    useCoBorrowerStore();
+  const { data: coBorrowers, isLoading, isError } = useFetchLoansAsCoborrower();
+
+  const approveLoan = useApproveAsCoborrower();
+  const rejectLoan = useRejectAsCoborrower();
   const [selectedLoanType, setSelectedLoanType] = useState(null);
   const [rejectConfirm, setRejectConfirm] = useState(false);
   const [approveConfirm, setApproveConfirm] = useState(false);
-
-  useEffect(() => {
-    fetchCoborrowerLoan();
-  }, [fetchCoborrowerLoan, rejectLoans, approveLoans]);
 
   const handleCloseDialog = () => {
     setSelectedLoanType(null);
@@ -89,7 +92,10 @@ export default function CoBorrowersPage() {
 
   const handleApprove = async () => {
     if (selectedLoanType) {
-      const res = approveLoans(selectedLoanType.loan_id, "approved");
+      const res = await approveLoan.mutateAsync({
+        loanId: selectedLoanType.loan_id,
+        status: "approved",
+      });
 
       if (res.error) {
         toast.error("Failed to approve loan application. Please try again. ");
@@ -104,7 +110,10 @@ export default function CoBorrowersPage() {
 
   const handleReject = async () => {
     if (selectedLoanType) {
-      const res = rejectLoans(selectedLoanType.loan_id, "rejected");
+      const res = rejectLoan.mutateAsync({
+        loanId: selectedLoanType.loan_id,
+        status: "rejected",
+      });
 
       if (res.error) {
         toast.error("Failed to reject loan application. Please try again. ");
@@ -134,7 +143,7 @@ export default function CoBorrowersPage() {
             <CardTitle>Your Loans</CardTitle>
           </CardHeader>
           <CardContent>
-            {coBorrowers.length === 0 ? (
+            {coBorrowers?.length === 0 ? (
               <div className="text-center py-12">
                 <p className="text-muted-foreground">No loans available</p>
               </div>
@@ -154,7 +163,7 @@ export default function CoBorrowersPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {coBorrowers.map((item) => (
+                    {coBorrowers?.map((item) => (
                       <TableRow key={item.id}>
                         <TableCell className="font-medium">
                           {item?.member?.first_name} {item?.member?.middle_name}{" "}
@@ -180,17 +189,17 @@ export default function CoBorrowersPage() {
 
                         <TableCell>
                           <div className="flex  gap-2">
-                            {item.coborrower_status == "pending" ? (
+                            {item?.coborrower_status == "pending" ? (
                               <p className="flex rounded-full px-2.5 py-0.5 text-xs gap-1 bg-yellow-100 text-yellow-700 border-yellow-300">
-                                {item.coborrower_status}
+                                {item?.coborrower_status}
                               </p>
-                            ) : item.coborrower_status == "approved" ? (
+                            ) : item?.coborrower_status == "approved" ? (
                               <p className="flex rounded-full px-2.5 py-0.5 text-xs gap-1 bg-green-100 text-green-700 border-green-300">
-                                {item.coborrower_status}
+                                {item?.coborrower_status}
                               </p>
-                            ) : item.coborrower_status == "rejected" ? (
+                            ) : item?.coborrower_status == "rejected" ? (
                               <p className="flex rounded-full px-2.5 py-0.5 text-xs gap-1 bg-red-100 text-red-700 border-red-300">
-                                ✘ {item.coborrower_status}
+                                ✘ {item?.coborrower_status}
                               </p>
                             ) : (
                               ""
@@ -199,7 +208,10 @@ export default function CoBorrowersPage() {
                         </TableCell>
 
                         <TableCell>
-                          {format(new Date(item.created_at), "MMM dd, yyyy")}
+                          {format(
+                            new Date(item?.coborrower_status_date),
+                            "MMM dd, yyyy",
+                          )}
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-2">
@@ -318,10 +330,11 @@ export default function CoBorrowersPage() {
             <AlertDialogCancel>No</AlertDialogCancel>
 
             <AlertDialogAction
+              disabled={rejectLoan.isPending}
               onClick={handleReject}
               className="bg-red-600 hover:bg-red-700"
             >
-              YES
+              {rejectLoan.isPending ? "Rejecting loan as Coborrower" : "Yes"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -342,10 +355,11 @@ export default function CoBorrowersPage() {
             <AlertDialogCancel>No</AlertDialogCancel>
 
             <AlertDialogAction
+              disabled={approveLoan.isPending}
               onClick={handleApprove}
               className="bg-green-600 hover:bg-green-700"
             >
-              YES
+              {approveLoan.isPending ? "Approving loan as Coborrower" : "Yes"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -15,8 +15,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { userLoanStore, useSearchUsersStore } from "@/store/useStore";
-import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
@@ -33,35 +31,15 @@ import { generateDates } from "@/lib/utils";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { Label } from "@/components/ui/label";
+import { useCreateUserLoan, useUserLoans, useUserLoanTypes } from "@/api/loans";
+import UserSearch from "@/components/userSearch";
 export default function Dashboard() {
-  const {
-    userLoans,
-    fetchUserLoan,
-    userLoanTypes,
-    createUserLoan,
-    fetchUserLoanTypes,
-  } = userLoanStore();
+  const createUserLoan = useCreateUserLoan();
+  const { data, isError, isLoading } = useUserLoanTypes();
 
-  const { users, search, loading, setSearch, fetchUsers } =
-    useSearchUsersStore();
+  const { data: loans } = useUserLoans();
+
   const [selectedLoanType, setSelectedLoanType] = useState(null);
-
-  useEffect(() => {
-    fetchUserLoanTypes();
-    fetchUserLoan();
-  }, [fetchUserLoanTypes, fetchUserLoan, userLoans]);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      fetchUsers(search);
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [search, fetchUsers]);
-
-  useEffect(() => {
-    fetchUsers("");
-  }, [fetchUsers]);
 
   const handleCloseDialog = () => {
     setSelectedLoanType(null);
@@ -110,11 +88,7 @@ export default function Dashboard() {
       );
       return;
     }
-    const res = await createUserLoan(
-      selectedLoanType.loan_id,
-      selectedLoanType.coborrower,
-      selectedLoanType.accepted,
-    );
+    const res = await createUserLoan.mutateAsync(selectedLoanType);
 
     console.log("create loan res", res);
     if (res.error) {
@@ -128,6 +102,10 @@ export default function Dashboard() {
     // closed dialog and reset selected loan type
   };
 
+  if (isLoading) return <p>Loading...</p>;
+
+  if (isError) return <p>Something went wrong.</p>;
+
   return (
     <div className="w-full">
       <div className="space-y-6">
@@ -139,14 +117,13 @@ export default function Dashboard() {
         </div>
 
         {/* Available Loans */}
-
         <Card>
           <CardHeader>
             <CardTitle>Available Loans</CardTitle>
           </CardHeader>
 
           <CardContent>
-            {userLoanTypes.length === 0 ? (
+            {data?.length === 0 ? (
               <div className="text-center py-12">
                 <p className="text-muted-foreground">No loans available</p>
               </div>
@@ -164,7 +141,7 @@ export default function Dashboard() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {userLoanTypes.map((item) => (
+                    {data?.map((item) => (
                       <TableRow key={item?.loan_id}>
                         <TableCell className="font-medium text-lg">
                           ₱{item?.loan_amount.toLocaleString()}
@@ -236,7 +213,7 @@ export default function Dashboard() {
             <CardTitle>Your Loans</CardTitle>
           </CardHeader>
           <CardContent>
-            {userLoans.length === 0 ? (
+            {loans?.length === 0 ? (
               <div className="text-center py-12">
                 <p className="text-muted-foreground">No loans available</p>
               </div>
@@ -256,7 +233,7 @@ export default function Dashboard() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {userLoans.map((item) => (
+                    {loans?.map((item) => (
                       <TableRow key={item.id}>
                         <TableCell className="font-medium">
                           {item.loan_type.loan_name}
@@ -344,13 +321,13 @@ export default function Dashboard() {
               <Label htmlFor="search" className="text-sm">
                 Search for co-borrower (optional)
               </Label>
-              <Input
+              {/* <Input
                 placeholder="Search user..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-              />
+              /> */}
 
-              {loading ? (
+              {/* {loading ? (
                 <p>Loading...</p>
               ) : (
                 <div className="space-y-2">
@@ -374,7 +351,9 @@ export default function Dashboard() {
                     </div>
                   ))}
                 </div>
-              )}
+              )} */}
+
+              <UserSearch setSelectedLoanType={setSelectedLoanType} />
             </div>
             {generatedDates && generatedDates.length > 0 && (
               <div className="text-sm text-muted-foreground">
@@ -459,7 +438,12 @@ export default function Dashboard() {
                 Cancel
               </Button>
 
-              <Button onClick={handleApplyLoan}>Apply this Loan</Button>
+              <Button
+                onClick={handleApplyLoan}
+                disabled={createUserLoan.isPending}
+              >
+                {createUserLoan.isPending ? "Applying..." : "Apply this Loan"}
+              </Button>
             </DialogFooter>
           </div>
         </DialogContent>

@@ -72,12 +72,38 @@ const navigation = [
   },
 ];
 
-export function AppLayout({ children }) {
-  const location = useLocation();
-  const { user, logout } = useAuthStore();
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/lib/supabase";
+import { useNavigate } from "react-router-dom";
+import { useAuthProfile } from "@/api/users";
 
+export function AppLayout({ children }) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const queryClient = useQueryClient();
+
+  const { data, isLoading, isError } = useAuthProfile();
+
+  console.log("user", data);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  const logoutMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      // 🔥 clear + refetch
+      queryClient.removeQueries(["auth-profile"]);
+      queryClient.invalidateQueries(["auth-profile"]);
+      navigate("/login");
+    },
+  });
+
+  if (isLoading) return <p>Loading...</p>;
+  if (isError) return <p>Something went wrong.</p>;
+
+  if (!data?.profile) return <p>No user found.</p>;
   return (
     <div className="w-full lg:pl-[16rem] min-h-screen bg-background">
       {/* Mobile sidebar backdrop */}
@@ -114,10 +140,9 @@ export function AppLayout({ children }) {
               const isActive = location.pathname === item.href;
 
               if (
-                (user?.role == "member" && item.role == "member") ||
-                (user?.role == "admin" && item.role == "admin") ||
-                ((user?.role == "approver-1" || user?.role == "approver-2") &&
-                  item.role == "approver") ||
+                (data?.profile?.role == "member" && item.role == "member") ||
+                (data?.profile?.role == "admin" && item.role == "admin") ||
+                (data?.profile?.role != "member" && item.role == "approver") ||
                 item.role == "all"
               )
                 return (
@@ -144,14 +169,16 @@ export function AppLayout({ children }) {
               <div className="flex items-center gap-3 mb-4 p-3 rounded-sm hover:bg-gray-200">
                 <div className="flex-shrink-0 w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
                   <span className="text-sm font-medium text-primary">
-                    {user?.first_name &&
-                      user?.first_name.charAt(0).toUpperCase()}
+                    {data?.profile?.first_name &&
+                      data?.profile?.first_name.charAt(0).toUpperCase()}
                   </span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-lg font-medium truncate">{user?.name}</p>
+                  <p className="text-lg font-medium truncate">
+                    {data?.profile?.name}
+                  </p>
                   <p className="text-md text-muted-foreground truncate">
-                    {user?.email}
+                    {data?.profile?.email}
                   </p>
                 </div>
               </div>
@@ -160,10 +187,11 @@ export function AppLayout({ children }) {
               variant="outline"
               size="sm"
               className="w-full"
-              onClick={logout}
+              onClick={() => logoutMutation.mutate()}
+              disabled={logoutMutation.isPending}
             >
               <LogOut className="h-4 w-4 mr-2" />
-              Logout
+              {logoutMutation.isPending ? "Logging out..." : "Logout"}
             </Button>
           </div>
         </div>

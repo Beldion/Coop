@@ -12,26 +12,45 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
 import ErrorLabel from "@/components/ui/error";
-import { useAuthStore } from "@/store/useStore";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/lib/supabase";
 
 export default function LoginForm() {
-  const login = useAuthStore((state) => state.login);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState(null);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
+  const [form, setForm] = useState({
+    email: "",
+    password: "",
+  });
 
-    const { error } = await login(email, password);
+  const loginMutation = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: form.email,
+        password: form.password,
+      });
 
-    if (error) {
-      console.log(error.message);
-      setError(error.message);
-    } else {
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(["auth-profile"]);
+
       navigate("/");
-    }
+    },
+  });
+
+  const handleChange = (e) => {
+    setForm((prev) => ({
+      ...prev,
+      [e.target.name]: e.target.value,
+    }));
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    loginMutation.mutate();
   };
   return (
     <div className="w-full flex items-center justify-center min-h-screen bg-muted/40 px-4">
@@ -44,15 +63,14 @@ export default function LoginForm() {
         </CardHeader>
 
         <CardContent>
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Username / Email</Label>
               <Input
-                onChange={(e) => {
-                  setError(null);
-                  setEmail(e.target.value);
-                }}
+                value={form.email}
+                onChange={handleChange}
                 id="email"
+                name="email"
                 type="text"
                 placeholder="Enter your username or email"
                 required
@@ -62,19 +80,25 @@ export default function LoginForm() {
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <Input
-                onChange={(e) => {
-                  setError(null);
-                  setPassword(e.target.value);
-                }}
+                value={form.password}
+                onChange={handleChange}
+                name="password"
                 id="password"
                 type="password"
                 placeholder="Enter your password"
                 required
               />
             </div>
-            {error && <ErrorLabel message={error} />}
-            <Button type="submit" className="w-full" size="lg">
-              Submit
+            {loginMutation.isError && (
+              <ErrorLabel message={loginMutation.error.message} />
+            )}
+            <Button
+              type="submit"
+              disabled={loginMutation.isPending}
+              className="w-full"
+              size="lg"
+            >
+              {loginMutation.isPending ? "Logging in..." : "Login"}
             </Button>
             <div className="flex justify-center align-items">
               <Link

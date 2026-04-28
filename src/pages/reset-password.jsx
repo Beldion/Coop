@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { supabase } from "../lib/supabase";
+import { supabase } from "@/lib/supabase";
 
 import {
   Card,
@@ -13,23 +13,39 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
 import ErrorLabel from "@/components/ui/error";
+import { useMutation } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 export default function ResetPassword() {
-  const [password, setPassword] = useState("");
   const navigate = useNavigate();
+
+  const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
 
-  const updatePassword = async (e) => {
-    e.preventDefault();
-    const { error } = await supabase.auth.updateUser({
-      password: password,
-    });
+  const resetPasswordMutation = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.auth.updateUser({
+        password,
+      });
 
-    if (error) {
-      setError(error.message);
-    } else {
-      navigate("/login");
-    }
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      toast.success("Password updated successfully.");
+      setTimeout(() => {
+        navigate("/login");
+      }, 1500);
+    },
+
+    onError: (err) => {
+      setError(err);
+    },
+  });
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    resetPasswordMutation.mutate();
   };
 
   return (
@@ -43,10 +59,11 @@ export default function ResetPassword() {
         </CardHeader>
 
         <CardContent>
-          <form onSubmit={updatePassword} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <Input
+                value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 id="password"
                 type="password"
@@ -56,8 +73,14 @@ export default function ResetPassword() {
               {error && <ErrorLabel message={error} />}
             </div>
             <div className="flex flex-col items-center align-center gap-2">
-              <Button type="submit" className="w-full">
-                Update Password
+              <Button
+                type="submit"
+                disabled={resetPasswordMutation.isPending}
+                className="w-full"
+              >
+                {resetPasswordMutation.isPending
+                  ? "Updating..."
+                  : "Update Password"}
               </Button>
               <Link
                 to="/login"
