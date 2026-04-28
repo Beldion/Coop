@@ -1,15 +1,37 @@
-// components/ProtectedRoute.jsx
-import { Navigate } from "react-router-dom";
-import { useAuthStore } from "@/store/useStore";
-
+import { useEffect, useState } from "react";
+import { Navigate, Outlet } from "react-router-dom";
+import { supabase } from "../lib/supabase";
+import { useQueryClient } from "@tanstack/react-query";
 export default function ProtectedRoute({ children }) {
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const [session, setSession] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
 
-  // if (loading) return <p>Loading...</p>;
+  useEffect(() => {
+    // initial session
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session);
+      setLoading(false);
 
-  if (!isAuthenticated) {
-    return <Navigate to="/login" />;
-  }
+      // 🔥 Refetch auth profile when login/logout happens
+      queryClient.invalidateQueries(["auth-profile"]);
+    });
+
+    // listen to changes (login/logout)
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setSession(session);
+      },
+    );
+
+    return () => {
+      listener.subscription.unsubscribe();
+    };
+  }, []);
+
+  if (loading) return <div className="p-6">Loading...</div>;
+
+  if (!session) return <Navigate to="/login" replace />;
 
   return children;
 }

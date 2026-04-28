@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
@@ -30,16 +30,18 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Search, Eye, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { useLoanTypeStore } from "@/store/useStore";
 import { generateDates } from "@/lib/utils";
+import {
+  useAllLoanTypes,
+  useArchiveLoanTypes,
+  useCreateLoanTypes,
+} from "@/api/loanType";
 
 export function LoanType() {
-  const { loanTypes, fetchLoanTypes, updateArchive, createLoanType } =
-    useLoanTypeStore();
+  const { data: loanTypes, isError, isLoading } = useAllLoanTypes();
+  const updateArchive = useArchiveLoanTypes();
+  const createLoanType = useCreateLoanTypes();
 
-  useEffect(() => {
-    fetchLoanTypes();
-  }, [fetchLoanTypes]);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -55,7 +57,7 @@ export function LoanType() {
   });
 
   const filteredLoans = useMemo(() => {
-    return loanTypes.filter((loan) => {
+    return loanTypes?.filter((loan) => {
       const matchesSearch = loan.loan_name
         ?.toLowerCase()
         .includes(searchQuery.toLowerCase());
@@ -109,7 +111,7 @@ export function LoanType() {
       service_fee: parseInt(formData.service_fee),
     };
 
-    const res = await createLoanType(loanData);
+    const res = await createLoanType.mutateAsync(loanData);
 
     if (res.error) {
       toast.error(res.error.message || "Failed to create loan");
@@ -124,7 +126,7 @@ export function LoanType() {
     if (
       window.confirm(`Are you sure you want to delete loan ${loan.loan_name}?`)
     ) {
-      const res = await updateArchive(loan.id);
+      const res = await updateArchive.mutateAsync(loan.id);
       if (res.error) {
         toast.error(res.error.message || "Failed to delete loan");
         return;
@@ -152,6 +154,9 @@ export function LoanType() {
       loan_type,
     );
   }, [formData]);
+
+  if (isLoading) return <p>Loading...</p>;
+  if (isError) return <p>Something went wrong</p>;
 
   return (
     <div className="space-y-6">
@@ -187,7 +192,7 @@ export function LoanType() {
         </CardHeader>
 
         <CardContent>
-          {filteredLoans.length === 0 ? (
+          {filteredLoans?.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-muted-foreground">
                 {searchQuery || statusFilter !== "all"
@@ -211,7 +216,7 @@ export function LoanType() {
                 </TableHeader>
 
                 <TableBody>
-                  {filteredLoans.map((loan) => (
+                  {filteredLoans?.map((loan) => (
                     <TableRow key={loan.id}>
                       <TableCell>{loan.loan_name}</TableCell>
                       <TableCell>{loan.loan_type}</TableCell>
@@ -226,6 +231,7 @@ export function LoanType() {
                           <Button
                             size="icon"
                             variant="ghost"
+                            disabled={updateArchive.isPending}
                             onClick={() => handleDelete(loan)}
                           >
                             <Trash2 className="h-4 w-4" />
@@ -342,7 +348,9 @@ export function LoanType() {
               <Button variant="outline" onClick={handleCloseDialog}>
                 Cancel
               </Button>
-              <Button type="submit">{editingLoan ? "Update" : "Create"}</Button>
+              <Button disabled={createLoanType.isPending} type="submit">
+                {createLoanType.isPending ? "Creating Loan" : "Create Loan"}
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>

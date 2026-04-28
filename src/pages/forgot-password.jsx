@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { supabase } from "../lib/supabase";
+import { supabase } from "@/lib/supabase";
 
 import {
   Card,
@@ -13,24 +13,35 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import ErrorLabel from "@/components/ui/error";
+import { useMutation } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
-  const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
-  const handleReset = async (e) => {
-    e.preventDefault();
+  const [error, setError] = useState(null);
 
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: "/update-password",
-    });
+  const forgotPasswordMutation = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: "/reset-password",
+      });
 
-    if (error) {
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      toast.error("Password reset link sent. Please check your email.");
+      setSuccess(true)
+    },
+    onError: (error) => {
       setError(error.message);
-    } else {
-      setSuccess(true);
-      //navigate("/");
-    }
+    },
+  });
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    forgotPasswordMutation.mutate();
   };
 
   return (
@@ -48,21 +59,27 @@ export default function ForgotPassword() {
             </CardHeader>
 
             <CardContent>
-              <form onSubmit={handleReset} className="space-y-4">
+              <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="email">Username / Email</Label>
                   <Input
+                    type="email"
+                    value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    id="email"
-                    type="text"
                     placeholder="Enter your username or email"
                     required
                   />
                   {error && <ErrorLabel message={error} />}
                 </div>
                 <div className="flex flex-col items-center align-center gap-2">
-                  <Button type="submit" className="w-full">
-                    Submit
+                  <Button
+                    type="submit"
+                    disabled={forgotPasswordMutation.isPending}
+                    className="w-full"
+                  >
+                    {forgotPasswordMutation.isPending
+                      ? "Sending..."
+                      : "Send Reset Link"}
                   </Button>
                   <Link
                     to="/login"

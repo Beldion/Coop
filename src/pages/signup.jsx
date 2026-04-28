@@ -1,54 +1,4 @@
-// import { useState } from "react";
-// import { supabase } from "../lib/supabase";
-
-// export default function Login() {
-//   const [email, setEmail] = useState("");
-//   const [password, setPassword] = useState("");
-
-//   const handleLogin = async (e) => {
-//     e.preventDefault();
-//     console.log(email, password);
-//     const { error } = await supabase.auth.signUp({
-//       email: email.trim(),
-//       password,
-//     });
-//     if (error) {
-//       alert(error.message);
-//       console.log(error);
-//     } else alert("Check your email to confirm signup");
-//   };
-//   return (
-//     <div className="flex w-full items-center justify-center min-h-screen">
-//       <form
-//         onSubmit={handleLogin}
-//         className="flex flex-col gap-4 p-6 border rounded-lg w-80"
-//       >
-//         <h2 className="text-xl font-bold">Sign up</h2>
-
-//         <input
-//           type="email"
-//           placeholder="Email"
-//           value={email}
-//           onChange={(e) => setEmail(e.target.value)}
-//           className="border p-2 rounded-sm"
-//         />
-
-//         <input
-//           type="password"
-//           placeholder="Password"
-//           value={password}
-//           onChange={(e) => setPassword(e.target.value)}
-//           className="border p-2 rounded-sm"
-//         />
-
-//         <button className="bg-[#000] text-white p-2 rounded-sm">Signup</button>
-//       </form>
-//     </div>
-//   );
-// }
-
 import { useState } from "react";
-import { supabase } from "../lib/supabase";
 
 import {
   Card,
@@ -60,28 +10,47 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { useNavigate, Link } from "react-router-dom";
+import { Link } from "react-router-dom";
+import { useMutation } from "@tanstack/react-query";
+import { supabase } from "@/lib/supabase";
+import { toast } from "sonner";
 
 export default function LoginForm() {
-  const navigate = useNavigate();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [message, setMessage] = useState("");
+  const [form, setForm] = useState({
+    email: "",
+    password: "",
+  });
 
-  const handleLogin = async (e) => {
+  const signupMutation = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.auth.signUp({
+        email: form.email,
+        password: form.password,
+      });
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      toast.success(
+        "Signup successful. Please check your email to confirm your account.",
+      );
+    },
+  });
+
+  const handleChange = (e) => {
+    setForm((prev) => ({
+      ...prev,
+      [e.target.name]: e.target.value,
+    }));
+
+    setMessage(null);
+  };
+
+  const handleSubmit = (e) => {
     e.preventDefault();
-    console.log(email, password);
-    const { error } = await supabase.auth.signUp({
-      email: email.trim(),
-      password,
-    });
-
-    if (error) {
-      alert(error);
-      console.log(error.message);
-    } else {
-      alert("Check your email to confirm signup");
-      navigate("/login");
-    }
+    signupMutation.mutate();
   };
   return (
     <div className="w-full flex items-center justify-center min-h-screen bg-muted/40 px-4">
@@ -94,11 +63,13 @@ export default function LoginForm() {
         </CardHeader>
 
         <CardContent>
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Username / Email</Label>
               <Input
-                onChange={(e) => setEmail(e.target.value)}
+                value={form.email}
+                onChange={handleChange}
+                name="email"
                 id="email"
                 type="text"
                 placeholder="Enter your username or email"
@@ -109,16 +80,27 @@ export default function LoginForm() {
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <Input
-                onChange={(e) => setPassword(e.target.value)}
+                name="password"
+                value={form.password}
+                onChange={handleChange}
                 id="password"
                 type="password"
                 placeholder="Enter your password"
                 required
               />
             </div>
-
-            <Button type="submit" className="w-full">
-              Sign Up
+            {message && <p className="text-green-600 text-sm">{message}</p>}
+            {signupMutation.isError && (
+              <p className="text-red-500 text-sm">
+                {signupMutation.error.message}
+              </p>
+            )}
+            <Button
+              type="submit"
+              disabled={signupMutation.isPending}
+              className="w-full"
+            >
+              {signupMutation.isPending ? "Creating account..." : "Signup"}
             </Button>
             <div className="flex justify-center align-items">
               <Link

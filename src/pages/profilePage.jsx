@@ -6,25 +6,26 @@ import { Button } from "@/components/ui/button";
 
 import { toast } from "sonner";
 import { Edit, Save, X } from "lucide-react";
-import { useAuthStore } from "@/store/useStore";
+import { useAuthProfile, useUpdateProfile } from "@/api/users";
 
 const ProfilePage = () => {
-  const user = useAuthStore((state) => state.user);
-  const updateUser = useAuthStore((state) => state.updateUser);
+  const { data, isLoading, isError } = useAuthProfile();
+
+  const updateProfile = useUpdateProfile();
 
   const [isEditing, setIsEditing] = useState(false);
-  const [profile, setProfile] = useState(user);
+  // const [profile, setProfile] = useState(data.profile);
 
-  const [editedProfile, setEditedProfile] = useState(profile);
+  const [editedProfile, setEditedProfile] = useState(data.profile);
 
   const handleEdit = () => {
     setIsEditing(true);
-    setEditedProfile(profile);
+    // setEditedProfile(profile);
   };
 
   const handleCancel = () => {
     setIsEditing(false);
-    setEditedProfile(user);
+    // setEditedProfile(profile);
   };
 
   const handleSave = async () => {
@@ -39,32 +40,29 @@ const ProfilePage = () => {
     }
 
     // Save changes
-    setProfile(editedProfile);
-    const { res } = await updateUser(editedProfile);
 
-    setIsEditing(false);
-    if (res?.error) {
-      toast.error(res?.error?.message);
-    } else {
+    try {
+      await updateProfile.mutateAsync(editedProfile);
+
+      setIsEditing(false);
       toast.success("Profile updated successfully!");
+    } catch (error) {
+      toast.error(error.message);
     }
   };
 
   const handleInputChange = (field, value) => {
-    // let newValue = value;
-
-    // if (field === "zipCode") {
-    //   console.log;
-    //   formatZipCode(value);
-    // }
-    // if (field === "tin") newValue = formatTin(value);
-    // if (field === "phone") newValue = formatPhone(value);
-
     setEditedProfile((prev) => ({
       ...prev,
       [field]: value,
     }));
   };
+
+  if (isLoading) return <p>Loading...</p>;
+
+  if (isError) return <p>Something went wrong.</p>;
+
+  if (!data?.profile) return <p>No user found.</p>;
 
   return (
     <div className="max-w-7xl mx-auto">
@@ -78,7 +76,7 @@ const ProfilePage = () => {
               Manage your personal information
             </p>
           </div>
-          {!isEditing && profile?.role === "admin" && (
+          {!isEditing && editedProfile?.role === "admin" && (
             <Button onClick={handleEdit} className="gap-2" size="lg">
               <Edit size={18} />
               Edit Profile
@@ -394,11 +392,12 @@ const ProfilePage = () => {
           <div className="flex flex-col sm:flex-row gap-4 mt-8 pt-6 border-t">
             <Button
               onClick={handleSave}
+              disabled={updateProfile.isPending}
               className="flex-1 sm:flex-none gap-2"
               size="lg"
             >
               <Save size={18} />
-              Save Changes
+              {updateProfile.isPending ? "Saving..." : "Save Changes"}
             </Button>
             <Button
               onClick={handleCancel}

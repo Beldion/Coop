@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,10 +29,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Search, Pencil, Trash2, Edit, Save, X } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { useUserStore } from "@/store/useStore";
+import { useFetchAllUsers, useUpdateUsers } from "@/api/users";
 
 export function UsersPage() {
-  const { allUsers, fetchUsers, loading, updateSingleUser } = useUserStore();
+  const { data: users, isLoading, isError } = useFetchAllUsers();
+  const updateSingleUser = useUpdateUsers();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -51,17 +52,14 @@ export function UsersPage() {
     phone: "",
   });
 
-  useEffect(() => {
-    fetchUsers();
-  }, [fetchUsers]);
   const filteredUsers = useMemo(() => {
-    return allUsers.filter(
+    return users?.filter(
       (user) =>
         user?.first_name?.toLowerCase().includes(searchQuery?.toLowerCase()) ||
         user?.last_name?.toLowerCase().includes(searchQuery?.toLowerCase()) ||
         user?.middle_name?.toLowerCase().includes(searchQuery?.toLowerCase()),
     );
-  }, [allUsers, searchQuery]);
+  }, [users, searchQuery]);
 
   const handleOpenDialog = (user) => {
     if (user) {
@@ -91,23 +89,24 @@ export function UsersPage() {
     setEditingUser(null);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (editingUser) {
       console.log("submitted", editingUser, formData);
-      updateSingleUser(formData);
-
+      const res = await updateSingleUser.mutateAsync(formData);
+      console.log("dasda", res);
+      if (res.isError) {
+        toast.error(res.isError);
+      }
       toast.success("User updated successfully");
-    } else {
-      //addUser(formData);
-      toast.success("User added successfully");
     }
 
     handleCloseDialog();
   };
 
-  if (loading) return <p>Loading...</p>;
+  if (isLoading) return <p>Loading...</p>;
+  if (isError) return <p>Something went wrong.</p>;
 
   return (
     <div className="space-y-6 w-full">
@@ -162,7 +161,7 @@ export function UsersPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {allUsers.map((user) => (
+                  {users.map((user) => (
                     <TableRow key={user.id}>
                       <TableCell className="font-medium">{`${user?.employee_id}`}</TableCell>
 
@@ -577,11 +576,12 @@ export function UsersPage() {
             <div className="flex flex-col sm:flex-row gap-4 mt-8 pt-6 border-t">
               <Button
                 onClick={handleSubmit}
+                disabled={updateSingleUser.isPending}
                 className="flex-1 sm:flex-none gap-2"
                 size="lg"
               >
                 <Save size={18} />
-                Save Changes
+                {updateSingleUser.isPending ? "Saving..." : "Save Changes"}
               </Button>
               <Button
                 onClick={handleCloseDialog}
