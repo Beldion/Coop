@@ -33,7 +33,6 @@ import { format } from "date-fns";
 import { Label } from "@/components/ui/label";
 import { useCreateUserLoan, useUserLoans, useUserLoanTypes } from "@/api/loans";
 import UserSearch from "@/components/userSearch";
-import { TableSkeleton } from "@/components/TableSkeleton";
 export default function Dashboard() {
   const createUserLoan = useCreateUserLoan();
   const { data, isError, isLoading } = useUserLoanTypes();
@@ -103,7 +102,7 @@ export default function Dashboard() {
     // closed dialog and reset selected loan type
   };
 
-  if (isLoading) return <TableSkeleton />;
+  if (isLoading) return <p>Loading...</p>;
 
   if (isError) return <p>Something went wrong.</p>;
 
