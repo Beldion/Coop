@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -9,6 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useCoBorrowerStore } from "@/store/useStore";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -42,7 +43,6 @@ import {
   useFetchLoansAsCoborrower,
   useRejectAsCoborrower,
 } from "@/api/coborrowers";
-import { TableSkeleton } from "@/components/TableSkeleton";
 export default function CoBorrowersPage() {
   const { data: coBorrowers, isLoading, isError } = useFetchLoansAsCoborrower();
 
@@ -52,9 +52,12 @@ export default function CoBorrowersPage() {
   const [rejectConfirm, setRejectConfirm] = useState(false);
   const [approveConfirm, setApproveConfirm] = useState(false);
 
+  const handleCloseDialog = () => {
+    setSelectedLoanType(null);
+  };
+
   const handleOpenDialog = (item) => {
     setSelectedLoanType({
-      name: item?.member?.first_name + " " + item?.member?.last_name,
       loan_id: item?.id,
       loan_name: item?.loan_type.loan_name,
       loan_type: item?.loan_type.loan_type,
@@ -63,8 +66,6 @@ export default function CoBorrowersPage() {
       service_fee: item?.loan_type.service_fee,
       term_months: item?.loan_type.term_months,
       coborrower_status: item?.coborrower_status,
-      apply_date: format(new Date(item?.created_at), "MMM dd, yyyy"),
-      loan_status: item?.status,
     });
   };
 
@@ -123,8 +124,7 @@ export default function CoBorrowersPage() {
       }
     }
   };
-  if (isLoading) return <TableSkeleton />;
-  if (isError) return <p>Something went wrong.</p>;
+
   return (
     <div className="w-full">
       <div className="space-y-6">
@@ -245,155 +245,73 @@ export default function CoBorrowersPage() {
       <Dialog open={selectedLoanType} onOpenChange={setSelectedLoanType}>
         <DialogContent className="max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-3xl text-center  py-5">
+            <DialogTitle className="text-3xl">
               {selectedLoanType?.coborrower_status === "pending"
                 ? "Approve or Reject Loan Application"
                 : "You friend's Loan Application Details"}
             </DialogTitle>
           </DialogHeader>
 
-          {/* Loan Details */}
-          <div className="space-y-6">
-            <div className="flex items-center gap-4">
-              <div>
-                <h1 className="text-3xl font-bold">
-                  {selectedLoanType?.loan_name}
-                </h1>
-                <p className="text-muted-foreground mt-1">
-                  Loan Type: {selectedLoanType?.loan_type}
-                </p>
+          <div className="flex gap-4 flex-col">
+            <p className="text-lg pb-2 border-b boder-muted-foreground">
+              Loan Name: {selectedLoanType?.loan_name}
+            </p>
+            <p className="text-lg pb-2 border-b boder-muted-foreground">
+              Loan Type: {selectedLoanType?.loan_type}
+            </p>
+            <p className="text-lg pb-2 border-b boder-muted-foreground">
+              Loan Amount: ₱{selectedLoanType?.loan_amount?.toLocaleString()}
+            </p>
+            <p className="text-lg pb-2 border-b boder-muted-foreground ">
+              Loan Interest: {selectedLoanType?.interest_rate}%
+            </p>
+            <p className="text-lg pb-2 border-b boder-muted-foreground">
+              Service Fee: {selectedLoanType?.service_fee}%
+            </p>
+
+            {generatedDates && generatedDates.length > 0 && (
+              <div className="text-sm text-muted-foreground">
+                <p className="mb-2 text-md">Sample Computations:</p>
+
+                {generatedDates.length === 1 ? (
+                  <p>{generatedDates[0]}</p>
+                ) : (
+                  generatedDates
+                    .reduce((acc, curr, i) => {
+                      if (i % 2 === 0) {
+                        const next = generatedDates[i + 1];
+                        acc.push(next ? `${curr}, ${next}` : curr); // fallback if odd
+                      }
+                      return acc;
+                    }, [])
+                    .map((range, index) => (
+                      <p key={index} className="py-0.5">
+                        {range}
+                      </p>
+                    ))
+                )}
               </div>
-            </div>
+            )}
+            {selectedLoanType?.coborrower_status === "pending" && (
+              <DialogFooter>
+                <Button
+                  variant="destructive"
+                  size="lg"
+                  onClick={() => setRejectConfirm(true)}
+                >
+                  REJECT
+                </Button>
 
-            {/* Loan Information */}
-            <div className="grid gap-6 md:grid-cols-2">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-xl">Loan Information</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground text-lg">
-                      Member
-                    </span>
-                    <span className="font-medium text-lg">
-                      {selectedLoanType?.name}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground text-lg">
-                      Loan Amount
-                    </span>
-                    <span className="font-medium text-lg">
-                      ₱{selectedLoanType?.loan_amount?.toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground text-lg">
-                      Interest Rate
-                    </span>
-                    <span className="font-medium text-lg">
-                      {selectedLoanType?.interest_rate}%
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground text-lg">
-                      Service Fee
-                    </span>
-                    <span className="font-medium text-lg">
-                      {selectedLoanType?.service_fee}%
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground text-lg">Term</span>
-                    <span className="font-medium text-lg">
-                      {selectedLoanType?.term_months}
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground text-lg">
-                      Apply Date
-                    </span>
-                    <span className="font-medium text-lg">
-                      {selectedLoanType?.apply_date}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground text-lg">
-                      Status
-                    </span>
-                    <span
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        selectedLoanType?.loan_status === "approved"
-                          ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"
-                          : selectedLoanType?.loan_status === "pending"
-                            ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400"
-                            : selectedLoanType?.loan_status === "rejected"
-                              ? "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400"
-                              : "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400"
-                      }`}
-                    >
-                      {selectedLoanType?.loan_status}
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-xl">
-                    Payment Sample Computation
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {generatedDates && generatedDates.length > 0 && (
-                    <div className="flex flex-col gap-2 text-lg text-muted-foreground">
-                      {generatedDates.length === 1 ? (
-                        <p>{generatedDates[0]}</p>
-                      ) : (
-                        generatedDates
-                          .reduce((acc, curr, i) => {
-                            if (i % 2 === 0) {
-                              const next = generatedDates[i + 1];
-                              acc.push(next ? `${curr}, ${next}` : curr); // fallback if odd
-                            }
-                            return acc;
-                          }, [])
-                          .map((range, index) => (
-                            <p key={index} className="py-0.5">
-                              {range}
-                            </p>
-                          ))
-                      )}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
+                <Button
+                  variant="default"
+                  size="lg"
+                  onClick={() => setApproveConfirm(true)}
+                >
+                  APPROVE
+                </Button>
+              </DialogFooter>
+            )}
           </div>
-
-          {selectedLoanType?.coborrower_status === "pending" && (
-            <DialogFooter>
-              <Button
-                variant="destructive"
-                size="lg"
-                onClick={() => setRejectConfirm(true)}
-              >
-                REJECT
-              </Button>
-
-              <Button
-                variant="default"
-                size="lg"
-                onClick={() => setApproveConfirm(true)}
-              >
-                APPROVE
-              </Button>
-            </DialogFooter>
-          )}
-
-          {/* Loan Details end*/}
         </DialogContent>
       </Dialog>
 
