@@ -1,5 +1,4 @@
 import { useState, useMemo } from "react";
-import { useParams, Link } from "react-router-dom";
 import { useStore } from "@/store/useStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,9 +31,10 @@ import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
-export function LoanDetailsPage() {
-  const { loanId } = useParams();
+export function LoanDetailsPage({ loanId = "L001" }) {
   const { loans, users, payments, addPayment, deletePayment } = useStore();
+
+  console.log("LoanDetailsPage render", { loanId, loans, users, payments });
   const [dialogOpen, setDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
     amount: "",
