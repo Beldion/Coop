@@ -250,6 +250,232 @@ export default function CoBorrowersPage() {
       <Dialog open={selectedLoanType} onOpenChange={setSelectedLoanType}>
         <DialogContent className="max-h-[80vh] overflow-y-auto">
           <DialogHeader>
+            <div className="flex items-center w-full p-5 py-7">
+              <div className="flex items-center justify-between w-full">
+                {steps?.map((step, index) => {
+                  console.log(index, "step in rendering");
+
+                  return (
+                    <div
+                      key={step.step}
+                      className={`flex items-center  ${index == 3 ? "w-auto" : "w-full"}`}
+                    >
+                      {/* Circle */}
+                      <div
+                        className={`
+                flex items-center justify-center w-10 h-10 rounded-full border-2 text-sm font-medium
+              
+
+                  ${
+                    step.status == "approved"
+                      ? "bg-green-100 px-3 text-green-600 border-green-300"
+                      : step.status == "rejected"
+                        ? "bg-red-100 px-3 text-red-600 border-red-300"
+                        : "bg-yellow-100 px-3 text-yellow-600"
+                  }
+              `}
+                      >
+                        {step.status == "approved" ? (
+                          <Check />
+                        ) : step.status == "rejected" ? (
+                          <X />
+                        ) : (
+                          step.step
+                        )}
+                      </div>
+                      {/* Line */}
+                      {index !== steps.length - 1 && (
+                        <div className="flex-1 h-[2px] mx-2 bg-gray-300 relative">
+                          <div
+                            className={`
+                    absolute top-0 left-0 h-[2px]
+                 
+                  `}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            <DialogTitle className="">
+              <div className="flex items-center gap-4">
+                <div>
+                  <h1 className="text-3xl font-bold">
+                    {selectedLoanType?.type?.loan_name}
+                  </h1>
+                  <p className="text-muted-foreground mt-1">
+                    Loan Type: {selectedLoanType?.type?.loan_type}
+                  </p>
+                </div>
+              </div>
+            </DialogTitle>
+          </DialogHeader>
+
+          {/* Loan Details */}
+          <div className="space-y-6">
+            {/* Loan Information */}
+            <div className="grid gap-6 md:grid-cols-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-xl">Loan Information</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground text-lg">
+                      Member
+                    </span>
+                    <span className="font-medium text-lg">
+                      {selectedLoanType?.member?.first_name}{" "}
+                      {selectedLoanType?.member?.middle_name}{" "}
+                      {selectedLoanType?.member?.last_name}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground text-lg">
+                      Loan Amount
+                    </span>
+                    <span className="font-medium text-lg">
+                      ₱{selectedLoanType?.type?.loan_amount?.toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground text-lg">
+                      Interest Rate
+                    </span>
+                    <span className="font-medium text-lg">
+                      {selectedLoanType?.type?.interest_rate}%
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground text-lg">
+                      Service Fee
+                    </span>
+                    <span className="font-medium text-lg">
+                      {selectedLoanType?.type?.service_fee}%
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground text-lg">Term</span>
+                    <span className="font-medium text-lg">
+                      {selectedLoanType?.type?.term_months}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground text-lg">
+                      Apply Date
+                    </span>
+                    <span className="font-medium text-lg">
+                      <span className="font-medium text-lg">
+                        {selectedLoanType?.created_at
+                          ? format(
+                              new Date(selectedLoanType?.created_at),
+                              "MM/dd/yyyy",
+                            )
+                          : "N/A"}
+                      </span>
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground text-lg">
+                      Status
+                    </span>
+                    <span
+                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        selectedLoanType?.status === "approved"
+                          ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"
+                          : selectedLoanType?.status === "pending"
+                            ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400"
+                            : selectedLoanType?.status === "rejected"
+                              ? "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400"
+                              : "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400"
+                      }`}
+                    >
+                      {selectedLoanType?.status}
+                    </span>
+                  </div>
+                  <div className="w-full h-[1px] my-4 bg-gray-200 dark:bg-gray-700"></div>
+
+                  <CardTitle className="text-xl">
+                    Co-borrowers Information
+                  </CardTitle>
+
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground text-lg">Name</span>
+                    <span className="font-medium text-lg">
+                      {selectedLoanType?.member?.first_name}{" "}
+                      {selectedLoanType?.member?.middle_name}{" "}
+                      {selectedLoanType?.member?.last_name}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground text-lg">
+                      Approved / Rejected Date
+                    </span>
+                    <span className="font-medium text-lg">
+                      {selectedLoanType?.coborrower_status_date
+                        ? format(
+                            new Date(selectedLoanType?.coborrower_status_date),
+                            "MM/dd/yyyy",
+                          )
+                        : "N/A"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground text-lg">
+                      Status
+                    </span>
+                    <span
+                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        selectedLoanType?.coborrower_status === "approved"
+                          ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"
+                          : selectedLoanType?.coborrower_status === "pending"
+                            ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400"
+                            : selectedLoanType?.coborrower_status === "rejected"
+                              ? "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400"
+                              : "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400"
+                      }`}
+                    >
+                      {selectedLoanType?.coborrower_status}
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-xl">
+                    Payment Sample Computation
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {generatedDates && generatedDates.length > 0 && (
+                    <div className="flex flex-col gap-2 text-lg text-muted-foreground">
+                      {generatedDates.length === 1 ? (
+                        <p>{generatedDates[0]}</p>
+                      ) : (
+                        generatedDates
+                          .reduce((acc, curr, i) => {
+                            if (i % 2 === 0) {
+                              const next = generatedDates[i + 1];
+                              acc.push(next ? `${curr}, ${next}` : curr); // fallback if odd
+                            }
+                            return acc;
+                          }, [])
+                          .map((range, index) => (
+                            <p key={index} className="py-0.5">
+                              {range}
+                            </p>
+                          ))
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
             <DialogTitle className="text-3xl">
               {selectedLoanType?.coborrower_status === "pending"
                 ? "Approve or Reject Loan Application"
