@@ -18,30 +18,23 @@ export function useFetchLoansAsApprover() {
         .select(
           `
       *,
-      coborrowers:coborrower_id (*),
       member:member_id (*),
-      type:loan_type_id (*)
+      loan_type:loan_type_id (*)
     `,
         )
         .neq("coborrower_id", user.id)
         .neq("member_id", user.id);
 
-      // if (user.role == "approver-2") {
-      //   query = query.eq("approver_1_status", "approved");
-      // }
+      if (user.role == "approver-2") {
+        query = query.eq("approver_1_status", "approved");
+      }
 
-      // if (user.role == "admin") {
-      //   query = query
-      //     .eq("approver_1_status", "approved")
-      //     .eq("approver_2_status", "approved");
-      // }
+      if (user.role == "admin") {
+        query = query
+          .eq("approver_1_status", "approved")
+          .query.eq("approver_2_status", "approved");
+      }
       const { data: userLoan, error: userLoanError } = await query;
-      console.log(
-        "fetching loans as approver for user",
-        userLoan,
-        userLoanError,
-      );
-
       if (userLoanError) throw userLoanError;
 
       console.log("user loans fin approer", user.role, userLoan);
@@ -58,7 +51,7 @@ export function useRejectAsApprover() {
     mutationFn: async ({ loanId, status }) => {
       const authProfile = queryClient.getQueryData(["auth-profile"]);
 
-      const user = authProfile?.profile;
+      const user = authProfile?.user;
 
       if (!user) throw new Error("No user");
 
@@ -89,7 +82,6 @@ export function useRejectAsApprover() {
           approver_admin: user.id,
         };
       }
-
       const { data, error } = await supabase
         .from("loans")
         .update(updateData)
@@ -100,7 +92,7 @@ export function useRejectAsApprover() {
         console.error("Update error:", error);
         return error;
       }
-      console.log("Update data:", data);
+
       return data;
     },
     onSuccess: () => {
@@ -116,9 +108,8 @@ export function useApproveAsApprover() {
     mutationFn: async ({ loanId, status }) => {
       const authProfile = queryClient.getQueryData(["auth-profile"]);
 
-      const user = authProfile?.profile;
+      const user = authProfile?.user;
 
-      console.log("============Approver user profile:", user);
       if (!user) throw new Error("No user");
 
       let updateData = null;
@@ -154,7 +145,6 @@ export function useApproveAsApprover() {
 
       if (error) throw error;
 
-      console.log("Update data:ss", data);
       return data;
     },
     onSuccess: () => {
