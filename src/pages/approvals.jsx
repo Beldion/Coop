@@ -9,8 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
+
 import {
   Dialog,
   DialogContent,
@@ -64,8 +63,6 @@ export default function ApprovalsPage() {
   const { data: loans, isLoading, isError } = useFetchLoansAsApprover();
   const {
     data: { profile },
-    isLoading: isAuthLoading,
-    isError: isAuthError,
   } = useAuthProfile();
 
   const approveLoan = useApproveAsApprover();
