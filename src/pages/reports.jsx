@@ -1,6 +1,13 @@
 import { useMemo, useState } from "react";
 
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -18,7 +25,7 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-import { Search } from "lucide-react";
+import { Printer, Search } from "lucide-react";
 
 const reportData = [
   {
@@ -54,18 +61,31 @@ function StatusBadge({ status }) {
     overdue: "bg-red-100 text-red-700",
   };
 
+  const labels = {
+    paid: "Paid",
+    upcoming: "Upcoming Due",
+    overdue: "Overdue",
+  };
+
   return (
     <span
-      className={`px-3 py-1 rounded-full text-xs font-medium capitalize ${styles[status]}`}
+      className={`px-3 py-1 rounded-full text-xs font-medium ${styles[status]}`}
     >
-      {status}
+      {labels[status]}
     </span>
   );
+}
+
+function formatCurrency(amount) {
+  return `₱${amount.toLocaleString()}`;
 }
 
 const ReportsPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [printModalOpen, setPrintModalOpen] = useState(false);
 
   const filteredReports = useMemo(() => {
     return reportData.filter((loan) => {
@@ -77,9 +97,18 @@ const ReportsPage = () => {
       const matchesStatus =
         statusFilter === "all" || loan.status === statusFilter;
 
-      return matchesSearch && matchesStatus;
+      const loanDate = new Date(loan.due_date);
+      const fromDate = startDate ? new Date(startDate) : null;
+      const toDate = endDate ? new Date(endDate) : null;
+
+      const matchesStartDate = fromDate ? loanDate >= fromDate : true;
+      const matchesEndDate = toDate ? loanDate <= toDate : true;
+
+      return (
+        matchesSearch && matchesStatus && matchesStartDate && matchesEndDate
+      );
     });
-  }, [searchQuery, statusFilter]);
+  }, [searchQuery, statusFilter, startDate, endDate]);
 
   const totalPaid = filteredReports.filter(
     (loan) => loan.status === "paid",
@@ -93,15 +122,83 @@ const ReportsPage = () => {
     (loan) => loan.status === "overdue",
   ).length;
 
+  const handleClearFilters = () => {
+    setSearchQuery("");
+    setStatusFilter("all");
+    setStartDate("");
+    setEndDate("");
+  };
+
+  const handlePrint = () => {
+    const printContent = document.getElementById("print-report-area");
+
+    if (!printContent) return;
+
+    const printWindow = window.open("", "_blank");
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Loan Reports</title>
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              padding: 24px;
+              color: #111827;
+            }
+
+            table {
+              width: 100%;
+              border-collapse: collapse;
+            }
+
+            th,
+            td {
+              border: 1px solid #e5e7eb;
+              padding: 10px;
+              text-align: left;
+              font-size: 13px;
+            }
+
+            th {
+              background: #f9fafb;
+            }
+
+            @media print {
+              body {
+                padding: 0;
+              }
+            }
+          </style>
+        </head>
+
+        <body>
+          ${printContent.innerHTML}
+        </body>
+      </html>
+    `);
+
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold">Reports</h1>
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h1 className="text-3xl font-bold">Reports</h1>
 
-        <p className="text-muted-foreground mt-1">
-          Track loan payment reports and statuses
-        </p>
+          <p className="text-muted-foreground mt-1">
+            Track loan payment reports and statuses
+          </p>
+        </div>
+
+        <Button onClick={() => setPrintModalOpen(true)}>
+          <Printer className="h-4 w-4 mr-2" />
+          Print CSV
+        </Button>
       </div>
 
       {/* Summary Cards */}
@@ -142,32 +239,56 @@ const ReportsPage = () => {
         <CardHeader>
           <CardTitle>Loan Reports</CardTitle>
 
-          <div className="flex flex-col md:flex-row gap-3 mt-4">
-            {/* Search */}
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <div className="flex flex-col gap-3 mt-4">
+            <div className="flex flex-col md:flex-row gap-3">
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
 
-              <Input
-                placeholder="Search member, loan, or ID..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
-              />
+                <Input
+                  placeholder="Search member, loan, or ID..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-full md:w-[200px]">
+                  <SelectValue placeholder="Filter status" />
+                </SelectTrigger>
+
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="paid">Paid</SelectItem>
+                  <SelectItem value="upcoming">Upcoming Due</SelectItem>
+                  <SelectItem value="overdue">Overdue</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
-            {/* Filter */}
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="Filter status" />
-              </SelectTrigger>
+            <div className="flex flex-col md:flex-row gap-3">
+              <Input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="w-full md:w-[200px]"
+              />
 
-              <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                <SelectItem value="paid">Paid</SelectItem>
-                <SelectItem value="upcoming">Upcoming Due</SelectItem>
-                <SelectItem value="overdue">Overdue</SelectItem>
-              </SelectContent>
-            </Select>
+              <Input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="w-full md:w-[200px]"
+              />
+
+              <button
+                type="button"
+                onClick={handleClearFilters}
+                className="px-4 py-2 border rounded-md text-sm hover:bg-muted"
+              >
+                Clear Filters
+              </button>
+            </div>
           </div>
         </CardHeader>
 
@@ -194,15 +315,10 @@ const ReportsPage = () => {
                   {filteredReports.map((loan) => (
                     <TableRow key={loan.id}>
                       <TableCell>{loan.id}</TableCell>
-
                       <TableCell>{loan.member_name}</TableCell>
-
                       <TableCell>{loan.loan_name}</TableCell>
-
-                      <TableCell>₱{loan.amount.toLocaleString()}</TableCell>
-
+                      <TableCell>{formatCurrency(loan.amount)}</TableCell>
                       <TableCell>{loan.due_date}</TableCell>
-
                       <TableCell>
                         <StatusBadge status={loan.status} />
                       </TableCell>
@@ -214,6 +330,68 @@ const ReportsPage = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Print Modal */}
+      <Dialog open={printModalOpen} onOpenChange={setPrintModalOpen}>
+        <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Print CSV Report</DialogTitle>
+          </DialogHeader>
+
+          <div id="print-report-area">
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Loan ID</TableHead>
+                    <TableHead>Member</TableHead>
+                    <TableHead>Loan Type</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Due Date</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+
+                <TableBody>
+                  {filteredReports.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6}>No reports found</TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredReports.map((loan) => (
+                      <TableRow key={loan.id}>
+                        <TableCell>{loan.id}</TableCell>
+                        <TableCell>{loan.member_name}</TableCell>
+                        <TableCell>{loan.loan_name}</TableCell>
+                        <TableCell>{formatCurrency(loan.amount)}</TableCell>
+                        <TableCell>{loan.due_date}</TableCell>
+                        <TableCell>
+                          {loan.status === "paid"
+                            ? "Paid"
+                            : loan.status === "upcoming"
+                              ? "Upcoming Due"
+                              : "Overdue"}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-4">
+            <Button variant="outline" onClick={() => setPrintModalOpen(false)}>
+              Cancel
+            </Button>
+
+            <Button onClick={handlePrint}>
+              <Printer className="h-4 w-4 mr-2" />
+              Print
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
