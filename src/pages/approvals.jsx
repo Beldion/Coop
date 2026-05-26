@@ -313,9 +313,6 @@ export default function ApprovalsPage() {
             <div className="flex items-center w-full p-5 py-7">
               <div className="flex items-center justify-between w-full">
                 {steps?.map((step, index) => {
-                  const isCompleted = true;
-                  const isActive = step === 4;
-
                   console.log(index, "step in rendering");
 
                   return (
@@ -408,7 +405,7 @@ export default function ApprovalsPage() {
                       Interest Rate
                     </span>
                     <span className="font-medium text-lg">
-                      {selectedLoanType?.interest_rate}%
+                      {selectedLoanType?.type?.interest_rate}%
                     </span>
                   </div>
                   <div className="flex justify-between">

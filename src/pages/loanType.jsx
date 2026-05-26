@@ -45,6 +45,8 @@ export function LoanType() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedLoanType, setSelectedLoanType] = useState(null);
+
   const [editingLoan, setEditingLoan] = useState(null);
 
   const [formData, setFormData] = useState({
@@ -92,6 +94,19 @@ export function LoanType() {
       });
     }
     setDialogOpen(true);
+  };
+
+  const handleViewDialog = (item) => {
+    console.log(item);
+    setSelectedLoanType({
+      loan_id: item.id,
+      loan_name: item.loan_name,
+      loan_type: item.loan_type,
+      loan_amount: item.loan_amount,
+      interest_rate: item.interest_rate,
+      service_fee: item.service_fee,
+      term_months: item.term_months,
+    });
   };
 
   const handleCloseDialog = () => {
@@ -145,7 +160,7 @@ export function LoanType() {
 
   const generatedDates = useMemo(() => {
     const { service_fee, loan_amount, interest_rate, term_months, loan_type } =
-      formData;
+      selectedLoanType || formData;
     return generateDates(
       service_fee,
       loan_amount,
@@ -153,7 +168,7 @@ export function LoanType() {
       term_months,
       loan_type,
     );
-  }, [formData]);
+  }, [formData, selectedLoanType]);
 
   if (isLoading) return <p>Loading...</p>;
   if (isError) return <p>Something went wrong</p>;
@@ -228,6 +243,15 @@ export function LoanType() {
                       <TableCell>{loan.service_fee}%</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            disabled={updateArchive.isPending}
+                            onClick={() => handleViewDialog(loan)}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+
                           <Button
                             size="icon"
                             variant="ghost"
@@ -353,6 +377,62 @@ export function LoanType() {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={selectedLoanType} onOpenChange={setSelectedLoanType}>
+        <DialogContent className="max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-3xl">
+              Are you sure you want to apply for this loan?{" "}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="flex gap-4 flex-col">
+            <p className="text-lg pb-2 border-b boder-muted-foreground">
+              Loan Name: {selectedLoanType?.loan_name}
+            </p>
+            <p className="text-lg pb-2 border-b boder-muted-foreground">
+              Loan Type: {selectedLoanType?.loan_type}
+            </p>
+            <p className="text-lg pb-2 border-b boder-muted-foreground">
+              Loan Amount: ₱{selectedLoanType?.loan_amount?.toLocaleString()}
+            </p>
+            <p className="text-lg pb-2 border-b boder-muted-foreground ">
+              Loan Interest: {selectedLoanType?.interest_rate}%
+            </p>
+            <p className="text-lg pb-2 border-b boder-muted-foreground">
+              Service Fee: {selectedLoanType?.service_fee}%
+            </p>
+            <div className="space-y-4">
+              <Label htmlFor="search" className="text-sm">
+                Search for co-borrower (optional)
+              </Label>
+            </div>
+            {generatedDates && generatedDates.length > 0 && (
+              <div className="text-sm text-muted-foreground">
+                <p className="mb-2 text-md">Sample Computations:</p>
+
+                {generatedDates.length === 1 ? (
+                  <p>{generatedDates[0]}</p>
+                ) : (
+                  generatedDates
+                    .reduce((acc, curr, i) => {
+                      if (i % 2 === 0) {
+                        const next = generatedDates[i + 1];
+                        acc.push(next ? `${curr}, ${next}` : curr); // fallback if odd
+                      }
+                      return acc;
+                    }, [])
+                    .map((range, index) => (
+                      <p key={index} className="py-0.5">
+                        {range}
+                      </p>
+                    ))
+                )}
+              </div>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>
