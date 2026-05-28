@@ -404,11 +404,7 @@ export function LoanType() {
             <p className="text-lg pb-2 border-b boder-muted-foreground">
               Service Fee: {selectedLoanType?.service_fee}%
             </p>
-            <div className="space-y-4">
-              <Label htmlFor="search" className="text-sm">
-                Search for co-borrower (optional)
-              </Label>
-            </div>
+
             {generatedDates && generatedDates.length > 0 && (
               <div className="text-sm text-muted-foreground">
                 <p className="mb-2 text-md">Sample Computations:</p>
