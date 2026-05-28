@@ -30,7 +30,6 @@ import { Plus, Search, Pencil, Trash2, Edit, Save, X } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { useFetchAllUsers, useUpdateUsers } from "@/api/users";
-import { TableSkeleton } from "@/components/TableSkeleton";
 
 export function UsersPage() {
   const { data: users, isLoading, isError } = useFetchAllUsers();
@@ -106,7 +105,7 @@ export function UsersPage() {
     handleCloseDialog();
   };
 
-  if (isLoading) return <TableSkeleton />;
+  if (isLoading) return <p>Loading...</p>;
   if (isError) return <p>Something went wrong.</p>;
 
   return (

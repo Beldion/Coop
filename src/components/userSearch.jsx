@@ -290,7 +290,7 @@ export default function UserSearch({ setSelectedLoanType }) {
         {/* Empty state hint */}
         {!selectedUser && !query && (
           <p className="mt-6 text-center text-xs text-slate-400">
-            Start typing to search your friend
+            Start typing to search your users table
           </p>
         )}
       </div>

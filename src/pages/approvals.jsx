@@ -31,81 +31,41 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-
-import {
-  Plus,
-  Search,
-  Pencil,
-  Trash2,
-  Edit,
-  Save,
-  X,
-  Eye,
-  Clock,
-  Loader,
-  CircleDashed,
-  Hourglass,
-  Check,
-} from "lucide-react";
+import { Plus, Search, Pencil, Trash2, Edit, Save, X, Eye } from "lucide-react";
 
 import { generateDates } from "@/lib/utils";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
-import { TableSkeleton } from "@/components/TableSkeleton";
 import {
   useApproveAsApprover,
   useFetchLoansAsApprover,
   useRejectAsApprover,
 } from "@/api/approver";
-import { useAuthProfile } from "@/api/users";
-export default function ApprovalsPage() {
+export default function CoBorrowersPage() {
   const { data: loans, isLoading, isError } = useFetchLoansAsApprover();
-  const {
-    data: { profile },
-  } = useAuthProfile();
 
   const approveLoan = useApproveAsApprover();
   const rejectLoan = useRejectAsApprover();
   const [selectedLoanType, setSelectedLoanType] = useState(null);
   const [rejectConfirm, setRejectConfirm] = useState(false);
   const [approveConfirm, setApproveConfirm] = useState(false);
-  const [steps, setSteps] = useState(null);
 
-  console.log("loans", loans);
+  const handleCloseDialog = () => {
+    setSelectedLoanType(null);
+  };
 
   const handleOpenDialog = (item) => {
-    setSelectedLoanType(item);
-    setSteps([
-      {
-        step: 1,
-        status: item.coborrower_status,
-        date: item.coborrower_status_date,
-        isCompleted: item.coborrower_status == "approved",
-      },
-      {
-        step: 2,
-        status: item.approver_1_status,
-        date: item.approver_1_status_date,
-        isCompleted: item.approver_1_status == "approved",
-      },
-      {
-        step: 3,
-        status: item.approver_2_status,
-        date: item.approver_2_status_date,
-        isCompleted: item.approver_2_status == "approved",
-      },
-      {
-        step: 4,
-        status: item.status,
-        date: item.status_date,
-        isCompleted: item.status == "approved",
-      },
-    ]);
-
-    setTimeout(() => {
-      console.log(steps, "steps");
-    }, 1000);
+    setSelectedLoanType({
+      loan_id: item?.id,
+      loan_name: item?.loan_type.loan_name,
+      loan_type: item?.loan_type.loan_type,
+      loan_amount: item?.loan_type.loan_amount,
+      interest_rate: item?.loan_type.interest_rate,
+      service_fee: item?.loan_type.service_fee,
+      term_months: item?.loan_type.term_months,
+      coborrower_status: item?.coborrower_status,
+    });
   };
 
   const generatedDates = useMemo(() => {
@@ -116,7 +76,7 @@ export default function ApprovalsPage() {
         interest_rate,
         term_months,
         loan_type,
-      } = selectedLoanType?.type || {};
+      } = selectedLoanType;
 
       console.log("test", term_months);
       return generateDates(
@@ -132,11 +92,10 @@ export default function ApprovalsPage() {
   const handleApprove = async () => {
     if (selectedLoanType) {
       const res = await approveLoan.mutateAsync({
-        loanId: selectedLoanType.id,
+        loanId: selectedLoanType.loan_id,
         status: "approved",
       });
 
-      console.log(res, "res in handle approve");
       if (res.error) {
         toast.error("Failed to approve loan application. Please try again. ");
       } else {
@@ -151,7 +110,7 @@ export default function ApprovalsPage() {
   const handleReject = async () => {
     if (selectedLoanType) {
       const res = rejectLoan.mutateAsync({
-        loanId: selectedLoanType.id,
+        loanId: selectedLoanType.loan_id,
         status: "rejected",
       });
 
@@ -164,8 +123,7 @@ export default function ApprovalsPage() {
       }
     }
   };
-  if (isLoading) return <TableSkeleton />;
-  if (isError) return <p>{isError?.message || "Something went wrong."}</p>;
+
   return (
     <div className="w-full">
       <div className="space-y-6">
@@ -193,13 +151,14 @@ export default function ApprovalsPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead>Loan Amount</TableHead>
+
                       <TableHead>Borrower Name</TableHead>
                       <TableHead>Loan Name</TableHead>
                       <TableHead>Loan Type</TableHead>
 
                       <TableHead>Co-borrower status</TableHead>
                       <TableHead>Co-borrower Approve date</TableHead>
-                      <TableHead>Status</TableHead>
 
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
@@ -208,40 +167,44 @@ export default function ApprovalsPage() {
                     {loans?.map((item) => (
                       <TableRow key={item.id}>
                         <TableCell className="font-medium">
+                          {item?.loan_type?.loan_amount?.toLocaleString()}
+                        </TableCell>
+
+                        <TableCell className="font-medium">
                           {item?.member?.first_name} {item?.member?.middle_name}{" "}
                           {item?.member?.last_name}
                         </TableCell>
 
                         <TableCell className="font-medium">
-                          {item?.type?.loan_name}
+                          {item?.loan_type?.loan_name}
                         </TableCell>
                         <TableCell className="font-medium">
                           <span
                             className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              item?.type?.loan_type === "Member"
+                              item.loan_type.loan_type === "Member"
                                 ? "bg-green-100 text-green-700 border-green-300"
-                                : item?.type?.loan_type === "Associate"
+                                : item.loan_type.loan_type === "Associate"
                                   ? "bg-blue-100 text-blue-700 border-blue-300"
                                   : "bg-purple-100 text-purple-700 border-purple-300"
                             }`}
                           >
-                            {item?.type?.loan_type}
+                            {item.loan_type.loan_type}
                           </span>
                         </TableCell>
 
                         <TableCell>
                           <div className="flex  gap-2">
-                            {item?.coborrower_status == "pending" ? (
+                            {item?.approver_1_status == "pending" ? (
                               <p className="flex rounded-full px-2.5 py-0.5 text-xs gap-1 bg-yellow-100 text-yellow-700 border-yellow-300">
-                                {item?.coborrower_status}
+                                {item?.approver_1_status}
                               </p>
-                            ) : item?.coborrower_status == "approved" ? (
+                            ) : item?.approver_1_status == "approved" ? (
                               <p className="flex rounded-full px-2.5 py-0.5 text-xs gap-1 bg-green-100 text-green-700 border-green-300">
-                                {item?.coborrower_status}
+                                {item?.approver_1_status}
                               </p>
-                            ) : item?.coborrower_status == "rejected" ? (
+                            ) : item?.approver_1_status == "rejected" ? (
                               <p className="flex rounded-full px-2.5 py-0.5 text-xs gap-1 bg-red-100 text-red-700 border-red-300">
-                                ✘ {item?.coborrower_status}
+                                ✘ {item?.approver_1_status}
                               </p>
                             ) : (
                               ""
@@ -254,26 +217,6 @@ export default function ApprovalsPage() {
                             new Date(item?.coborrower_status_date),
                             "MMM dd, yyyy",
                           )}
-                        </TableCell>
-
-                        <TableCell>
-                          <div className="flex  gap-2">
-                            {item?.status == "pending" ? (
-                              <p className="flex rounded-full px-2.5 py-0.5 text-xs gap-1 bg-yellow-100 text-yellow-700 border-yellow-300">
-                                {item?.status}
-                              </p>
-                            ) : item?.status == "approved" ? (
-                              <p className="flex rounded-full px-2.5 py-0.5 text-xs gap-1 bg-green-100 text-green-700 border-green-300">
-                                {item?.status}
-                              </p>
-                            ) : item?.status == "rejected" ? (
-                              <p className="flex rounded-full px-2.5 py-0.5 text-xs gap-1 bg-red-100 text-red-700 border-red-300">
-                                ✘ {item?.status}
-                              </p>
-                            ) : (
-                              ""
-                            )}
-                          </div>
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-2">
@@ -533,37 +476,73 @@ export default function ApprovalsPage() {
                 </CardContent>
               </Card>
             </div>
+            <DialogTitle className="text-3xl">
+              {selectedLoanType?.coborrower_status === "pending"
+                ? "Approve or Reject Loan Application"
+                : "You friend's Loan Application Details"}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="flex gap-4 flex-col">
+            <p className="text-lg pb-2 border-b boder-muted-foreground">
+              Loan Name: {selectedLoanType?.loan_name}
+            </p>
+            <p className="text-lg pb-2 border-b boder-muted-foreground">
+              Loan Type: {selectedLoanType?.loan_type}
+            </p>
+            <p className="text-lg pb-2 border-b boder-muted-foreground">
+              Loan Amount: ₱{selectedLoanType?.loan_amount?.toLocaleString()}
+            </p>
+            <p className="text-lg pb-2 border-b boder-muted-foreground ">
+              Loan Interest: {selectedLoanType?.interest_rate}%
+            </p>
+            <p className="text-lg pb-2 border-b boder-muted-foreground">
+              Service Fee: {selectedLoanType?.service_fee}%
+            </p>
+
+            {generatedDates && generatedDates.length > 0 && (
+              <div className="text-sm text-muted-foreground">
+                <p className="mb-2 text-md">Sample Computations:</p>
+
+                {generatedDates.length === 1 ? (
+                  <p>{generatedDates[0]}</p>
+                ) : (
+                  generatedDates
+                    .reduce((acc, curr, i) => {
+                      if (i % 2 === 0) {
+                        const next = generatedDates[i + 1];
+                        acc.push(next ? `${curr}, ${next}` : curr); // fallback if odd
+                      }
+                      return acc;
+                    }, [])
+                    .map((range, index) => (
+                      <p key={index} className="py-0.5">
+                        {range}
+                      </p>
+                    ))
+                )}
+              </div>
+            )}
+            {selectedLoanType?.coborrower_status === "pending" && (
+              <DialogFooter>
+                <Button
+                  variant="destructive"
+                  size="lg"
+                  onClick={() => setRejectConfirm(true)}
+                >
+                  REJECT
+                </Button>
+
+                <Button
+                  variant="default"
+                  size="lg"
+                  onClick={() => setApproveConfirm(true)}
+                >
+                  APPROVE
+                </Button>
+              </DialogFooter>
+            )}
           </div>
-
-          {((profile.role === "approver-1" &&
-            selectedLoanType?.approver_1_status === "pending") ||
-            (profile.role === "approver-2" &&
-              selectedLoanType?.approver_1_status === "approved" &&
-              selectedLoanType?.approver_2_status === "pending") ||
-            (profile.role === "admin" &&
-              selectedLoanType?.approver_1_status === "approved" &&
-              selectedLoanType?.approver_2_status === "approved" &&
-              selectedLoanType?.status === "pending")) && (
-            <DialogFooter>
-              <Button
-                variant="destructive"
-                size="lg"
-                onClick={() => setRejectConfirm(true)}
-              >
-                REJECT
-              </Button>
-
-              <Button
-                variant="default"
-                size="lg"
-                onClick={() => setApproveConfirm(true)}
-              >
-                APPROVE
-              </Button>
-            </DialogFooter>
-          )}
-
-          {/* Loan Details end*/}
         </DialogContent>
       </Dialog>
 
