@@ -32,6 +32,17 @@ import { Plus, Search, Eye, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { generateDates } from "@/lib/utils";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
   useAllLoanTypes,
   useArchiveLoanTypes,
   useCreateLoanTypes,
@@ -46,6 +57,7 @@ export function LoanType() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedLoanType, setSelectedLoanType] = useState(null);
+  const [saveConfirm, setSaveConfirm] = useState(false);
 
   const [editingLoan, setEditingLoan] = useState(null);
 
@@ -135,6 +147,7 @@ export function LoanType() {
       toast.success("Loan created successfully");
     }
     handleCloseDialog();
+    setSaveConfirm(false);
   };
 
   const handleDelete = async (loan) => {
@@ -280,7 +293,7 @@ export function LoanType() {
             <DialogDescription>Fill in loan details</DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} id="loan-type-form">
             <div className="space-y-4 py-4">
               <div className="space-y-2">
                 <Label>Loan Type</Label>
@@ -372,9 +385,7 @@ export function LoanType() {
               <Button variant="outline" onClick={handleCloseDialog}>
                 Cancel
               </Button>
-              <Button disabled={createLoanType.isPending} type="submit">
-                {createLoanType.isPending ? "Creating Loan" : "Create Loan"}
-              </Button>
+              <Button onClick={() => setSaveConfirm(true)}>Create Loan</Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -431,6 +442,29 @@ export function LoanType() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={saveConfirm} onOpenChange={setSaveConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Save?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to save these changes?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <AlertDialogFooter>
+            <AlertDialogAction
+              disabled={createLoanType.isPending}
+              type="submit"
+              form="loan-type-form"
+              className="grey:bg-green-600 bg-green-500 hover:bg-green-600 focus:ring-green-600"
+            >
+              {createLoanType.isPending ? "Applying..." : "Yes"}
+            </AlertDialogAction>
+            <AlertDialogCancel>No</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

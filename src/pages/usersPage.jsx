@@ -32,12 +32,25 @@ import { format } from "date-fns";
 import { useFetchAllUsers, useUpdateUsers } from "@/api/users";
 import { TableSkeleton } from "@/components/TableSkeleton";
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+
 export function UsersPage() {
   const { data: users, isLoading, isError } = useFetchAllUsers();
   const updateSingleUser = useUpdateUsers();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [saveConfirm, setSaveConfirm] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [formData, setFormData] = useState({
     first_name: "",
@@ -104,6 +117,7 @@ export function UsersPage() {
     }
 
     handleCloseDialog();
+    setSaveConfirm(false);
   };
 
   if (isLoading) return <TableSkeleton />;
@@ -174,9 +188,13 @@ export function UsersPage() {
                           className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                             user.role === "admin"
                               ? "bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400"
-                              : user.role === "staff"
-                                ? "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400"
-                                : "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"
+                              : user.role === "member"
+                                ? "bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700 dark:bg-slate-900/20 dark:text-slate-400"
+                                : user.role === "approver-1"
+                                  ? " bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-900/20 dark:text-blue-400"
+                                  : user.role === "approver-2"
+                                    ? "bg-violet-100 px-2.5 py-0.5 text-xs font-medium text-violet-700 dark:bg-violet-900/20 dark:text-violet-400"
+                                    : "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"
                           }`}
                         >
                           {user.role}
@@ -186,10 +204,10 @@ export function UsersPage() {
                       <TableCell>
                         <span
                           className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            user?.coop_status === "admin"
-                              ? "bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400"
-                              : user?.coop_status === "staff"
-                                ? "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400"
+                            user?.coop_status === "active"
+                              ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"
+                              : user?.coop_status === "inactive"
+                                ? "bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-500 dark:bg-gray-900/20 dark:text-gray-400"
                                 : "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"
                           }`}
                         >
@@ -576,8 +594,7 @@ export function UsersPage() {
 
             <div className="flex flex-col sm:flex-row gap-4 mt-8 pt-6 border-t">
               <Button
-                onClick={handleSubmit}
-                disabled={updateSingleUser.isPending}
+                onClick={() => setSaveConfirm(true)}
                 className="flex-1 sm:flex-none gap-2"
                 size="lg"
               >
@@ -597,6 +614,28 @@ export function UsersPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={saveConfirm} onOpenChange={setSaveConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Save?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to save these changes?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <AlertDialogFooter>
+            <AlertDialogAction
+              disabled={updateSingleUser.isPending}
+              onClick={handleSubmit}
+              className="grey:bg-green-600 bg-green-500 hover:bg-green-600 focus:ring-green-600"
+            >
+              {updateSingleUser.isPending ? "Saving..." : "Yes"}
+            </AlertDialogAction>
+            <AlertDialogCancel>No</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
