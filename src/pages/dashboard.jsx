@@ -27,6 +27,18 @@ import {
 } from "@/components/ui/dialog";
 import { Plus, Search, Pencil, Trash2, Edit, Save, X, Eye } from "lucide-react";
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+
 import { generateDates } from "@/lib/utils";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -41,6 +53,7 @@ export default function Dashboard() {
   const { data: loans } = useUserLoans();
 
   const [selectedLoanType, setSelectedLoanType] = useState(null);
+  const [saveConfirm, setSaveConfirm] = useState(false);
 
   const handleCloseDialog = () => {
     setSelectedLoanType(null);
@@ -98,6 +111,7 @@ export default function Dashboard() {
     } else {
       toast.success("Loan created successfully");
       setSelectedLoanType(null);
+      setSaveConfirm(false);
     }
 
     // closed dialog and reset selected loan type
@@ -440,7 +454,16 @@ export default function Dashboard() {
               </Button>
 
               <Button
-                onClick={handleApplyLoan}
+                onClick={() => {
+                  if (selectedLoanType.accepted !== true) {
+                    toast.error(
+                      "You must accept the terms and conditions to apply for this loan",
+                    );
+
+                    return;
+                  }
+                  setSaveConfirm(true);
+                }}
                 disabled={createUserLoan.isPending}
               >
                 {createUserLoan.isPending ? "Applying..." : "Apply this Loan"}
@@ -449,6 +472,28 @@ export default function Dashboard() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={saveConfirm} onOpenChange={setSaveConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Save?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to save these changes?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <AlertDialogFooter>
+            <AlertDialogAction
+              disabled={createUserLoan.isPending}
+              onClick={handleApplyLoan}
+              className="grey:bg-green-600 bg-green-500 hover:bg-green-600 focus:ring-green-600"
+            >
+              {createUserLoan.isPending ? "Applying..." : "Yes"}
+            </AlertDialogAction>
+            <AlertDialogCancel>No</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
