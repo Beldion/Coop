@@ -239,8 +239,9 @@ const ReportsPage = () => {
         <CardHeader>
           <CardTitle>Loan Reports</CardTitle>
 
-          <div className="flex flex-col gap-3 mt-4">
-            <div className="flex flex-col md:flex-row gap-3">
+          <div className="flex flex-col lg:flex-row items-start lg:items-center gap-3 mt-4">
+            {/* Search + Status Filter */}
+            <div className="flex flex-col md:flex-row gap-3 flex-1">
               <div className="relative flex-1 max-w-md">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
 
@@ -248,12 +249,12 @@ const ReportsPage = () => {
                   placeholder="Search member, loan, or ID..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9"
+                  className="pl-9 h-10"
                 />
               </div>
 
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full md:w-[200px]">
+                <SelectTrigger className="w-full md:w-[200px] !h-10">
                   <SelectValue placeholder="Filter status" />
                 </SelectTrigger>
 
@@ -266,28 +267,30 @@ const ReportsPage = () => {
               </Select>
             </div>
 
-            <div className="flex flex-col md:flex-row gap-3">
+            {/* Date Filters + Clear */}
+            <div className="flex flex-col md:flex-row gap-3 lg:ml-auto">
               <Input
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="w-full md:w-[200px]"
+                className="w-full md:w-[200px] h-10"
               />
 
               <Input
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="w-full md:w-[200px]"
+                className="w-full md:w-[200px] h-10"
               />
 
-              <button
+              <Button
                 type="button"
+                variant="outline"
                 onClick={handleClearFilters}
-                className="px-4 py-2 border rounded-md text-sm hover:bg-muted"
+                className="h-10"
               >
                 Clear Filters
-              </button>
+              </Button>
             </div>
           </div>
         </CardHeader>
@@ -335,7 +338,7 @@ const ReportsPage = () => {
       <Dialog open={printModalOpen} onOpenChange={setPrintModalOpen}>
         <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Print CSV Report</DialogTitle>
+            <DialogTitle>Download CSV Report</DialogTitle>
           </DialogHeader>
 
           <div id="print-report-area">
