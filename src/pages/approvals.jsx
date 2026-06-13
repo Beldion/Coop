@@ -59,6 +59,7 @@ import {
   useRejectAsApprover,
 } from "@/api/approver";
 import { useAuthProfile } from "@/api/users";
+import { Label } from "@/components/ui/label";
 export default function ApprovalsPage() {
   const { data: loans, isLoading, isError } = useFetchLoansAsApprover();
   const {
@@ -509,27 +510,57 @@ export default function ApprovalsPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {generatedDates && generatedDates.length > 0 && (
-                    <div className="flex flex-col gap-2 text-lg text-muted-foreground">
-                      {generatedDates.length === 1 ? (
-                        <p>{generatedDates[0]}</p>
-                      ) : (
-                        generatedDates
-                          .reduce((acc, curr, i) => {
-                            if (i % 2 === 0) {
-                              const next = generatedDates[i + 1];
-                              acc.push(next ? `${curr}, ${next}` : curr); // fallback if odd
-                            }
-                            return acc;
-                          }, [])
-                          .map((range, index) => (
-                            <p key={index} className="py-0.5">
-                              {range}
-                            </p>
-                          ))
-                      )}
-                    </div>
+                  {selectedLoanType?.payment_dates?.length > 0 && (
+                    <>
+                      <p className="text-lg font-semibold">Payment Schedule</p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {selectedLoanType?.payment_dates?.map((item) => (
+                          <div
+                            key={item.id}
+                            className="grid grid-cols-2 gap-4 "
+                          >
+                            <div className="space-y-2 ">
+                              <Label className="text-sm"> Date</Label>
+
+                              <p>
+                                {format(
+                                  new Date(item.payment_date),
+                                  "MM/dd/yyyy",
+                                )}
+                              </p>
+                            </div>
+                            <div className="space-y-2 ">
+                              <Label className="text-sm">Amount</Label>
+                              <p>₱{item.amount?.toLocaleString()}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </>
                   )}
+                  {!selectedLoanType?.payment_dates?.length > 0 &&
+                    generatedDates &&
+                    generatedDates.length > 0 && (
+                      <div className="flex flex-col gap-2 text-lg text-muted-foreground">
+                        {generatedDates.length === 1 ? (
+                          <p>{generatedDates[0]}</p>
+                        ) : (
+                          generatedDates
+                            .reduce((acc, curr, i) => {
+                              if (i % 2 === 0) {
+                                const next = generatedDates[i + 1];
+                                acc.push(next ? `${curr}, ${next}` : curr); // fallback if odd
+                              }
+                              return acc;
+                            }, [])
+                            .map((range, index) => (
+                              <p key={index} className="py-0.5">
+                                {range}
+                              </p>
+                            ))
+                        )}
+                      </div>
+                    )}
                 </CardContent>
               </Card>
             </div>
