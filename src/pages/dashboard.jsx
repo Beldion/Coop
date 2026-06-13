@@ -43,11 +43,17 @@ import { generateDates } from "@/lib/utils";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { Label } from "@/components/ui/label";
-import { useCreateUserLoan, useUserLoans, useUserLoanTypes } from "@/api/loans";
+import {
+  useCreateUserLoan,
+  useUserLoans,
+  useUserLoanTypes,
+  useCreateLoanPayments,
+} from "@/api/loans";
 import UserSearch from "@/components/userSearch";
 import { TableSkeleton } from "@/components/TableSkeleton";
 export default function Dashboard() {
   const createUserLoan = useCreateUserLoan();
+  const createLoanPayment = useCreateLoanPayments();
   const { data, isError, isLoading } = useUserLoanTypes();
 
   const { data: loans } = useUserLoans();
@@ -60,7 +66,6 @@ export default function Dashboard() {
   };
 
   const handleOpenDialog = (item) => {
-    console.log(item);
     setSelectedLoanType({
       loan_id: item.id,
       loan_name: item.loan_name,
@@ -69,9 +74,9 @@ export default function Dashboard() {
       interest_rate: item.interest_rate,
       service_fee: item.service_fee,
       term_months: item.term_months,
+      special_dates: item.special_payment_date,
     });
   };
-
   const generatedDates = useMemo(() => {
     if (selectedLoanType) {
       const {
@@ -109,6 +114,22 @@ export default function Dashboard() {
       toast.error(res.error.message || "Failed to create loan");
       return;
     } else {
+      if (res[0]?.loan_type?.loan_type === "Special") {
+        const resLoanPayments = await createLoanPayment.mutateAsync(
+          selectedLoanType.special_dates.map((item) => ({
+            loan_id: res[0].id,
+            payment_date: item.term_date,
+            amount: item.amount,
+          })),
+        );
+
+        if (resLoanPayments.error) {
+          toast.error(
+            resLoanPayments.error.message || "Failed to create loan payments",
+          );
+          return;
+        }
+      }
       toast.success("Loan created successfully");
       setSelectedLoanType(null);
       setSaveConfirm(false);
@@ -336,63 +357,55 @@ export default function Dashboard() {
               <Label htmlFor="search" className="text-sm">
                 Search for co-borrower (optional)
               </Label>
-              {/* <Input
-                placeholder="Search user..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              /> */}
-
-              {/* {loading ? (
-                <p>Loading...</p>
-              ) : (
-                <div className="space-y-2">
-                  {users.map((user) => (
-                    <div
-                      key={user.id}
-                      className={`flex items-center gap-4 border rounded-lg p-3 cursor-pointer hover:bg-muted ${user.id === selectedLoanType?.coborrower ? "bg-muted" : ""}`}
-                      onClick={() => {
-                        setSelectedLoanType((prev) => ({
-                          ...prev,
-                          coborrower: user.id,
-                        }));
-                        console.log("selected coborrower", selectedLoanType);
-                      }}
-                    >
-                      <p>
-                        {user.first_name} {user.middle_name} {user.last_name}
-                      </p>
-                      <p>{user.email}</p>
-                      <p>{user.role}</p>
-                    </div>
-                  ))}
-                </div>
-              )} */}
 
               <UserSearch setSelectedLoanType={setSelectedLoanType} />
             </div>
-            {generatedDates && generatedDates.length > 0 && (
-              <div className="text-sm text-muted-foreground">
-                <p className="mb-2 text-md">Sample Computations:</p>
-
-                {generatedDates.length === 1 ? (
-                  <p>{generatedDates[0]}</p>
-                ) : (
-                  generatedDates
-                    .reduce((acc, curr, i) => {
-                      if (i % 2 === 0) {
-                        const next = generatedDates[i + 1];
-                        acc.push(next ? `${curr}, ${next}` : curr); // fallback if odd
-                      }
-                      return acc;
-                    }, [])
-                    .map((range, index) => (
-                      <p key={index} className="py-0.5">
-                        {range}
-                      </p>
-                    ))
-                )}
-              </div>
+            {selectedLoanType?.special_dates?.length > 0 && (
+              <>
+                <p className="text-lg font-semibold">Payment Schedule</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {selectedLoanType?.special_dates?.map((item) => (
+                    <div key={item.id} className="grid grid-cols-2 gap-4 ">
+                      <div className="space-y-2 ">
+                        <Label className="text-sm">
+                          Term {item.term_number} - Payment Date
+                        </Label>
+                        <p>{item.term_date}</p>
+                      </div>
+                      <div className="space-y-2 ">
+                        <Label className="text-sm">Amount</Label>
+                        <p>₱{item.amount?.toLocaleString()}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
             )}
+            {!selectedLoanType?.special_dates?.length > 0 &&
+              generatedDates &&
+              generatedDates.length > 0 && (
+                <div className="text-sm text-muted-foreground">
+                  <p className="mb-2 text-md">Sample Computations:</p>
+
+                  {generatedDates.length === 1 ? (
+                    <p>{generatedDates[0]}</p>
+                  ) : (
+                    generatedDates
+                      .reduce((acc, curr, i) => {
+                        if (i % 2 === 0) {
+                          const next = generatedDates[i + 1];
+                          acc.push(next ? `${curr}, ${next}` : curr); // fallback if odd
+                        }
+                        return acc;
+                      }, [])
+                      .map((range, index) => (
+                        <p key={index} className="py-0.5">
+                          {range}
+                        </p>
+                      ))
+                  )}
+                </div>
+              )}
 
             <div className="space-y-4">
               <div className="flex items-center gap-3">

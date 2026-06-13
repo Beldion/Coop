@@ -21,7 +21,7 @@ export function useUserLoanTypes() {
 
       const { data, error } = await supabase
         .from("loan_type")
-        .select("*")
+        .select(`*,  special_payment_date (*)`)
         .eq("archive", false);
 
       if (error) throw error;
@@ -94,7 +94,7 @@ export function useCreateUserLoan() {
             terms_and_conditions: payload.accepted,
           },
         ])
-        .select();
+        .select(`*,  loan_type:loan_type_id (*)  `);
 
       console.log("Create user loan response:", { data, error });
 
@@ -105,6 +105,26 @@ export function useCreateUserLoan() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["user-loan-types"] });
       queryClient.invalidateQueries({ queryKey: ["loans"] });
+    },
+  });
+}
+
+// CREATE special payment dates
+export function useCreateLoanPayments() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (payload) => {
+      const { data, error } = await supabase
+        .from("loan_payments")
+        .insert(payload)
+        .select();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(["loan-payments"]);
     },
   });
 }

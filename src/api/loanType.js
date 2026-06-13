@@ -1,24 +1,25 @@
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-// Fetch All users
+// fetch all loan types
 export function useAllLoanTypes() {
   return useQuery({
     queryKey: ["loan-types"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("loan_type")
-        .select("*")
+        .select(`*,  special_payment_date (*)`)
         .eq("archive", false);
 
       if (error) throw error;
 
+      console.log("loan types", data);
       return data;
     },
     staleTime: 1000 * 60 * 5,
   });
 }
 
-// update single member admin only
+// archive loan type
 export function useArchiveLoanTypes() {
   const queryClient = useQueryClient();
 
@@ -27,7 +28,7 @@ export function useArchiveLoanTypes() {
       const { data, error } = await supabase
         .from("loan_type")
         .update({ archive: true })
-        .eq("id", id) // or "id" if you didn’t migrate yet
+        .eq("id", id)
         .select();
 
       if (error) throw error;
@@ -70,6 +71,27 @@ export function useCreateLoanTypes() {
       return data;
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["loan-types"] });
+    },
+  });
+}
+
+// CREATE special payment dates
+export function useCreateSpecialPaymentDates() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (payload) => {
+      const { data, error } = await supabase
+        .from("special_payment_date")
+        .insert(payload)
+        .select();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(["special-payment-dates"]);
       queryClient.invalidateQueries({ queryKey: ["loan-types"] });
     },
   });

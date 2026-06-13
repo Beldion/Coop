@@ -1,5 +1,4 @@
-import { useState, useMemo } from "react";
-import { Link } from "react-router-dom";
+import { useState, useMemo, useEffect } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,19 +45,19 @@ import {
   useAllLoanTypes,
   useArchiveLoanTypes,
   useCreateLoanTypes,
+  useCreateSpecialPaymentDates,
 } from "@/api/loanType";
 
 export function LoanType() {
   const { data: loanTypes, isError, isLoading } = useAllLoanTypes();
   const updateArchive = useArchiveLoanTypes();
   const createLoanType = useCreateLoanTypes();
-
+  const createSpecialPaymentDates = useCreateSpecialPaymentDates();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedLoanType, setSelectedLoanType] = useState(null);
   const [saveConfirm, setSaveConfirm] = useState(false);
-
   const [editingLoan, setEditingLoan] = useState(null);
 
   const [formData, setFormData] = useState({
@@ -68,6 +67,7 @@ export function LoanType() {
     interest_rate: "",
     term_months: "",
     service_fee: "",
+    special_dates: [],
   });
 
   const filteredLoans = useMemo(() => {
@@ -93,6 +93,7 @@ export function LoanType() {
         interest_rate: loan.interest_rate.toString(),
         term_months: loan.term_months.toString(),
         service_fee: loan.service_fee.toString(),
+        special_dates: loan?.special_dates || [],
       });
     } else {
       setEditingLoan(null);
@@ -103,6 +104,7 @@ export function LoanType() {
         interest_rate: "",
         term_months: "",
         service_fee: "",
+        special_dates: [],
       });
     }
     setDialogOpen(true);
@@ -118,6 +120,7 @@ export function LoanType() {
       interest_rate: item.interest_rate,
       service_fee: item.service_fee,
       term_months: item.term_months,
+      special_dates: item?.special_payment_date || [],
     });
   };
 
@@ -144,6 +147,26 @@ export function LoanType() {
       toast.error(res.error.message || "Failed to create loan");
       return;
     } else {
+      if (res[0].loan_type === "Special") {
+        const payload = formData.special_dates.map((item, index) => ({
+          loan_type: res[0].id, // FK from newly created loan type
+          term_number: index + 1,
+          term_date: item.value,
+          amount: item.amount, // fallback to computed if not set
+        }));
+
+        const resSpecial = await createSpecialPaymentDates.mutateAsync(payload);
+
+        if (resSpecial.error) {
+          toast.error(
+            resSpecial.error.message ||
+              "Failed to create special payment dates",
+          );
+
+          console.log(resSpecial.error);
+          return;
+        }
+      }
       toast.success("Loan created successfully");
     }
     handleCloseDialog();
@@ -164,16 +187,76 @@ export function LoanType() {
     }
   };
 
+  useEffect(() => {
+    if (formData.loan_type !== "Special") return;
+
+    const count = Number(formData.term_months);
+
+    const monthlyPayment =
+      (Number(formData.loan_amount) * (Number(formData.interest_rate) / 100) +
+        Number(formData.loan_amount)) /
+      count;
+
+    const newSpecialDates = Array.from({ length: count }, (_, index) => ({
+      index,
+      value: formData.special_dates?.[index]?.value || "",
+      amount: monthlyPayment,
+    }));
+
+    setFormData((prev) => {
+      // Only update if the array actually changed
+      if (
+        JSON.stringify(prev.special_dates) === JSON.stringify(newSpecialDates)
+      ) {
+        return prev; // No change, skip re-render
+      }
+
+      return {
+        ...prev,
+        special_dates: newSpecialDates,
+      };
+    });
+  }, [
+    formData.loan_type,
+    formData.term_months,
+    formData.loan_amount,
+    formData.interest_rate,
+  ]);
+
   // ✅ Reactive update
 
   const handleOnChange = (field, value) => {
     const updatedFormData = { ...formData, [field]: value };
+
     setFormData(updatedFormData);
+  };
+
+  //confirm Handler
+
+  const saveConfirmHandler = () => {
+    const hasEmptyField = (formData) => {
+      return Object.entries(formData).some(([key, value]) => {
+        if (key === "special_dates") {
+          return value.some((item) => !item.value?.toString().trim());
+        }
+
+        return !value?.toString().trim();
+      });
+    };
+
+    if (hasEmptyField(formData)) {
+      console.log("Form data has empty fields:", formData);
+      toast.error("Please fill in all required fields");
+      return;
+    }
+    console.log("Form data is valid:", formData);
+    setSaveConfirm(true);
   };
 
   const generatedDates = useMemo(() => {
     const { service_fee, loan_amount, interest_rate, term_months, loan_type } =
       selectedLoanType || formData;
+    if (loan_type === "Special") return [];
     return generateDates(
       service_fee,
       loan_amount,
@@ -181,7 +264,14 @@ export function LoanType() {
       term_months,
       loan_type,
     );
-  }, [formData, selectedLoanType]);
+  }, [
+    selectedLoanType,
+    formData.loan_type,
+    formData.service_fee,
+    formData.loan_amount,
+    formData.interest_rate,
+    formData.term_months,
+  ]);
 
   if (isLoading) return <p>Loading...</p>;
   if (isError) return <p>Something went wrong</p>;
@@ -379,13 +469,54 @@ export function LoanType() {
                   )}
                 </div>
               )}
+              {/* Special Dates */}
+              {formData?.special_dates?.length > 0 && (
+                <>
+                  <p className="text-lg font-semibold">Payment Schedule</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {formData?.special_dates?.map((item, index) => (
+                      <div className="grid grid-cols-2 gap-4 ">
+                        <div key={`item-${index}`} className="space-y-2 ">
+                          <Label className="text-sm">
+                            Term {item.index + 1} - Payment Date
+                          </Label>
+
+                          <Input
+                            key={index}
+                            type="date"
+                            value={item.value}
+                            onChange={(e) => {
+                              setFormData((prev) => ({
+                                ...prev,
+                                special_dates: prev.special_dates.map(
+                                  (date, i) =>
+                                    i === index
+                                      ? { ...date, value: e.target.value }
+                                      : date,
+                                ),
+                              }));
+                            }}
+                          />
+                        </div>
+
+                        <div key={item.index} className="space-y-2 ">
+                          <Label className="text-sm">Amount</Label>
+                          <p className="flex items-center text-xl font-medium">
+                            {`₱${item.amount.toLocaleString()}`}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
 
             <DialogFooter>
               <Button variant="outline" onClick={handleCloseDialog}>
                 Cancel
               </Button>
-              <Button onClick={() => setSaveConfirm(true)}>Create Loan</Button>
+              <Button onClick={() => saveConfirmHandler()}>Create Loan</Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -394,9 +525,7 @@ export function LoanType() {
       <Dialog open={selectedLoanType} onOpenChange={setSelectedLoanType}>
         <DialogContent className="max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-3xl">
-              Are you sure you want to apply for this loan?{" "}
-            </DialogTitle>
+            <DialogTitle className="text-3xl">Loan Type Details? </DialogTitle>
           </DialogHeader>
 
           <div className="flex gap-4 flex-col">
@@ -416,6 +545,27 @@ export function LoanType() {
               Service Fee: {selectedLoanType?.service_fee}%
             </p>
 
+            {selectedLoanType?.special_dates?.length > 0 && (
+              <>
+                <p className="text-lg font-semibold">Payment Schedule</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {selectedLoanType?.special_dates?.map((item) => (
+                    <div key={item.id} className="grid grid-cols-2 gap-4 ">
+                      <div className="space-y-2 ">
+                        <Label className="text-sm">
+                          Term {item.term_number} - Payment Date
+                        </Label>
+                        <p>{item.term_date}</p>
+                      </div>
+                      <div className="space-y-2 ">
+                        <Label className="text-sm">Amount</Label>
+                        <p>₱{item.amount?.toLocaleString()}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
             {generatedDates && generatedDates.length > 0 && (
               <div className="text-sm text-muted-foreground">
                 <p className="mb-2 text-md">Sample Computations:</p>
