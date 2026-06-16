@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import Decimal from "decimal.js";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -58,17 +59,70 @@ export function LoanType() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedLoanType, setSelectedLoanType] = useState(null);
   const [saveConfirm, setSaveConfirm] = useState(false);
-  const [editingLoan, setEditingLoan] = useState(null);
 
-  const [formData, setFormData] = useState({
+  const initialData = {
     loan_type: "",
     loan_name: "",
     loan_amount: "",
     interest_rate: "",
     term_months: "",
     service_fee: "",
+    total_payable: "",
     special_dates: [],
-  });
+  };
+
+  const [formData, setFormData] = useState(initialData);
+
+  useEffect(() => {
+    if (formData.loan_type !== "Special") {
+      setFormData((prev) => ({
+        ...prev,
+        special_dates: [],
+      }));
+      return;
+    }
+
+    const count = Number(formData.term_months);
+
+    const monthlyPayment =
+      (Number(formData.loan_amount) * (Number(formData.interest_rate) / 100) +
+        Number(formData.loan_amount)) /
+      count;
+
+    const newSpecialDates = Array.from({ length: count }, (_, index) => ({
+      index,
+      value: formData.special_dates?.[index]?.value || "",
+      amount: monthlyPayment,
+    }));
+
+    setFormData((prev) => {
+      // Only update if the array actually changed
+      if (
+        JSON.stringify(prev.special_dates) === JSON.stringify(newSpecialDates)
+      ) {
+        return prev; // No change, skip re-render
+      }
+
+      return {
+        ...prev,
+        total_payable: monthlyPayment * count,
+        special_dates: newSpecialDates,
+      };
+    });
+  }, [
+    formData.loan_type,
+    formData.term_months,
+    formData.loan_amount,
+    formData.interest_rate,
+  ]);
+
+  // ✅ Reactive update
+
+  const handleOnChange = (field, value) => {
+    const updatedFormData = { ...formData, [field]: value };
+
+    setFormData(updatedFormData);
+  };
 
   const filteredLoans = useMemo(() => {
     return loanTypes?.filter((loan) => {
@@ -83,35 +137,11 @@ export function LoanType() {
     });
   }, [loanTypes, searchQuery, statusFilter]);
 
-  const handleOpenDialog = (loan) => {
-    if (loan) {
-      setEditingLoan(loan);
-      setFormData({
-        loan_type: loan.loan_type || "",
-        loan_name: loan.loan_name || "",
-        loan_amount: loan.loan_amount.toString(),
-        interest_rate: loan.interest_rate.toString(),
-        term_months: loan.term_months.toString(),
-        service_fee: loan.service_fee.toString(),
-        special_dates: loan?.special_dates || [],
-      });
-    } else {
-      setEditingLoan(null);
-      setFormData({
-        loan_type: "",
-        loan_name: "",
-        loan_amount: "",
-        interest_rate: "",
-        term_months: "",
-        service_fee: "",
-        special_dates: [],
-      });
-    }
+  const handleOpenDialog = () => {
     setDialogOpen(true);
   };
 
   const handleViewDialog = (item) => {
-    console.log(item);
     setSelectedLoanType({
       loan_id: item.id,
       loan_name: item.loan_name,
@@ -126,7 +156,6 @@ export function LoanType() {
 
   const handleCloseDialog = () => {
     setDialogOpen(false);
-    setEditingLoan(null);
   };
 
   const handleSubmit = async (e) => {
@@ -172,7 +201,66 @@ export function LoanType() {
     handleCloseDialog();
     setSaveConfirm(false);
   };
+  const saveConfirmHandler = () => {
+    const toggleErrorBorder = (name, hasError) => {
+      document.querySelectorAll(`[name="${name}"]`).forEach((el) => {
+        el.classList.toggle("border-red-500", hasError);
+      });
+    };
 
+    const isEmpty = (value) => {
+      return !value?.toString().trim();
+    };
+
+    const hasEmptyField = (formData) => {
+      Object.entries(formData).forEach(([key, value]) => {
+        if (key === "special_dates") {
+          value.forEach((item, index) => {
+            const emptyValue = isEmpty(item.value);
+            const emptyAmount = isEmpty(item.amount);
+            toggleErrorBorder(`date-${index}`, emptyValue);
+            toggleErrorBorder(`amount-${index}`, emptyAmount);
+          });
+        } else {
+          const empty = isEmpty(value);
+          toggleErrorBorder(key, empty);
+        }
+      });
+
+      return Object.entries(formData).some(([key, value]) => {
+        if (key === "special_dates") {
+          return value.some((item) => {
+            const empty = isEmpty(item.value);
+
+            return empty;
+          });
+        }
+
+        const empty = isEmpty(value);
+
+        return empty;
+      });
+    };
+
+    if (hasEmptyField(formData)) {
+      console.log("Form data has empty fields:", formData);
+      toast.error("Please fill in all required fields");
+      return;
+    }
+    const total = formData.special_dates.reduce(
+      (acc, item) => acc.plus(new Decimal(item.amount)),
+      new Decimal(0),
+    );
+
+    console.log("Computed total:", total.toFixed(2));
+    if (formData.total_payable.toFixed(2) !== total.toFixed(2)) {
+      toast.error(
+        "Total payable does not match sum of special payment amounts",
+      );
+      return;
+    }
+    setSaveConfirm(true);
+  };
   const handleDelete = async (loan) => {
     if (
       window.confirm(`Are you sure you want to delete loan ${loan.loan_name}?`)
@@ -187,71 +275,7 @@ export function LoanType() {
     }
   };
 
-  useEffect(() => {
-    if (formData.loan_type !== "Special") return;
-
-    const count = Number(formData.term_months);
-
-    const monthlyPayment =
-      (Number(formData.loan_amount) * (Number(formData.interest_rate) / 100) +
-        Number(formData.loan_amount)) /
-      count;
-
-    const newSpecialDates = Array.from({ length: count }, (_, index) => ({
-      index,
-      value: formData.special_dates?.[index]?.value || "",
-      amount: monthlyPayment,
-    }));
-
-    setFormData((prev) => {
-      // Only update if the array actually changed
-      if (
-        JSON.stringify(prev.special_dates) === JSON.stringify(newSpecialDates)
-      ) {
-        return prev; // No change, skip re-render
-      }
-
-      return {
-        ...prev,
-        special_dates: newSpecialDates,
-      };
-    });
-  }, [
-    formData.loan_type,
-    formData.term_months,
-    formData.loan_amount,
-    formData.interest_rate,
-  ]);
-
-  // ✅ Reactive update
-
-  const handleOnChange = (field, value) => {
-    const updatedFormData = { ...formData, [field]: value };
-
-    setFormData(updatedFormData);
-  };
-
   //confirm Handler
-
-  const saveConfirmHandler = () => {
-    const hasEmptyField = (formData) => {
-      return Object.entries(formData).some(([key, value]) => {
-        if (key === "special_dates") {
-          return value.some((item) => !item.value?.toString().trim());
-        }
-
-        return !value?.toString().trim();
-      });
-    };
-
-    if (hasEmptyField(formData)) {
-      console.log("Form data has empty fields:", formData);
-      toast.error("Please fill in all required fields");
-      return;
-    }
-    console.log("Form data is valid:", formData);
-    setSaveConfirm(true);
-  };
 
   const generatedDates = useMemo(() => {
     const { service_fee, loan_amount, interest_rate, term_months, loan_type } =
@@ -377,9 +401,7 @@ export function LoanType() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>
-              {editingLoan ? "Edit Loan" : "Create Loan"}
-            </DialogTitle>
+            <DialogTitle>Create Loan</DialogTitle>
             <DialogDescription>Fill in loan details</DialogDescription>
           </DialogHeader>
 
@@ -406,6 +428,7 @@ export function LoanType() {
                 <Label>Loan Name</Label>
                 <Input
                   required
+                  name="loan_name"
                   value={formData.loan_name}
                   onChange={(e) => handleOnChange("loan_name", e.target.value)}
                 />
@@ -415,6 +438,7 @@ export function LoanType() {
               <Input
                 type="number"
                 min="0"
+                name="loan_amount"
                 required
                 value={formData.loan_amount}
                 onChange={(e) => handleOnChange("loan_amount", e.target.value)}
@@ -425,6 +449,7 @@ export function LoanType() {
                 type="number"
                 min="0"
                 required
+                name="interest_rate"
                 value={formData.interest_rate}
                 onChange={(e) =>
                   handleOnChange("interest_rate", e.target.value)
@@ -436,6 +461,7 @@ export function LoanType() {
                 type="number"
                 min="0"
                 required
+                name="term_months"
                 value={formData.term_months}
                 onChange={(e) => handleOnChange("term_months", e.target.value)}
               />
@@ -445,6 +471,7 @@ export function LoanType() {
                 type="number"
                 min="0"
                 required
+                name="service_fee"
                 value={formData.service_fee}
                 onChange={(e) => handleOnChange("service_fee", e.target.value)}
               />
@@ -473,18 +500,24 @@ export function LoanType() {
               {formData?.special_dates?.length > 0 && (
                 <>
                   <p className="text-lg font-semibold">Payment Schedule</p>
+                  <p className="text-lg font-semibold">
+                    total payable = ₱{formData.total_payable?.toLocaleString()}
+                  </p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {formData?.special_dates?.map((item, index) => (
-                      <div className="grid grid-cols-2 gap-4 ">
-                        <div key={`item-${index}`} className="space-y-2 ">
+                      <div
+                        key={`item-${index}`}
+                        className="grid grid-cols-2 gap-4 "
+                      >
+                        <div className="space-y-2 ">
                           <Label className="text-sm">
                             Term {item.index + 1} - Payment Date
                           </Label>
 
                           <Input
-                            key={index}
                             type="date"
                             value={item.value}
+                            name={`date-${index}`}
                             onChange={(e) => {
                               setFormData((prev) => ({
                                 ...prev,
@@ -501,9 +534,23 @@ export function LoanType() {
 
                         <div key={item.index} className="space-y-2 ">
                           <Label className="text-sm">Amount</Label>
-                          <p className="flex items-center text-xl font-medium">
-                            {`₱${item.amount.toLocaleString()}`}
-                          </p>
+                          <Input
+                            type="number"
+                            min="0"
+                            name={`amount-${index}`}
+                            value={item.amount}
+                            onChange={(e) => {
+                              setFormData((prev) => ({
+                                ...prev,
+                                special_dates: prev.special_dates.map(
+                                  (date, i) =>
+                                    i === index
+                                      ? { ...date, amount: e.target.value }
+                                      : date,
+                                ),
+                              }));
+                            }}
+                          />
                         </div>
                       </div>
                     ))}
