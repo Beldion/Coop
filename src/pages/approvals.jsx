@@ -502,7 +502,6 @@ export default function ApprovalsPage() {
                   </div>
                 </CardContent>
               </Card>
-
               <Card>
                 <CardHeader>
                   <CardTitle className="text-xl">
