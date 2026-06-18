@@ -51,13 +51,13 @@ import {
 } from "@/api/loans";
 import UserSearch from "@/components/userSearch";
 import { TableSkeleton } from "@/components/TableSkeleton";
+import { Link } from "react-router-dom";
 export default function Dashboard() {
   const createUserLoan = useCreateUserLoan();
   const createLoanPayment = useCreateLoanPayments();
   const { data, isError, isLoading } = useUserLoanTypes();
 
   const { data: loans } = useUserLoans();
-
   const [selectedLoanType, setSelectedLoanType] = useState(null);
   const [saveConfirm, setSaveConfirm] = useState(false);
 
@@ -114,22 +114,22 @@ export default function Dashboard() {
       toast.error(res.error.message || "Failed to create loan");
       return;
     } else {
-      if (res[0]?.loan_type?.loan_type === "Special") {
-        const resLoanPayments = await createLoanPayment.mutateAsync(
-          selectedLoanType.special_dates.map((item) => ({
-            loan_id: res[0].id,
-            payment_date: item.term_date,
-            amount: item.amount,
-          })),
-        );
+      // if (res[0]?.loan_type?.loan_type === "Special") {
+      //   const resLoanPayments = await createLoanPayment.mutateAsync(
+      //     selectedLoanType.special_dates.map((item) => ({
+      //       loan_id: res[0].id,
+      //       payment_date: item.term_date,
+      //       amount: item.amount,
+      //     })),
+      //   );
 
-        if (resLoanPayments.error) {
-          toast.error(
-            resLoanPayments.error.message || "Failed to create loan payments",
-          );
-          return;
-        }
-      }
+      //   if (resLoanPayments.error) {
+      //     toast.error(
+      //       resLoanPayments.error.message || "Failed to create loan payments",
+      //     );
+      //     return;
+      //   }
+      // }
       toast.success("Loan created successfully");
       setSelectedLoanType(null);
       setSaveConfirm(false);
@@ -152,10 +152,10 @@ export default function Dashboard() {
           </p>
         </div>
 
-        {/* Available Loans */}
+        {/* Available Loans Type */}
         <Card>
           <CardHeader>
-            <CardTitle>Available Loans</CardTitle>
+            <CardTitle>Available Loans </CardTitle>
           </CardHeader>
 
           <CardContent>
@@ -243,7 +243,7 @@ export default function Dashboard() {
             )}
           </CardContent>
         </Card>
-        {/* Recent Transactions */}
+        {/* Recent Transactions - loans*/}
         <Card>
           <CardHeader>
             <CardTitle>Your Loans</CardTitle>
@@ -258,10 +258,13 @@ export default function Dashboard() {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead>Amount</TableHead>
+
                       <TableHead>Loan Name</TableHead>
                       <TableHead>Loan Type</TableHead>
-                      <TableHead>Approve By</TableHead>
                       <TableHead>Co-borrower</TableHead>
+                      <TableHead>Co-borrower Status</TableHead>
+
                       <TableHead>Status</TableHead>
                       <TableHead>Created at</TableHead>
 
@@ -271,6 +274,9 @@ export default function Dashboard() {
                   <TableBody>
                     {loans?.map((item) => (
                       <TableRow key={item.id}>
+                        <TableCell className="font-medium text-xl">
+                          ₱{item?.loan_type?.loan_amount.toLocaleString()}
+                        </TableCell>
                         <TableCell className="font-medium">
                           {item.loan_type.loan_name}
                         </TableCell>
@@ -278,24 +284,31 @@ export default function Dashboard() {
                         <TableCell className="font-medium">
                           {item.loan_type.loan_type}
                         </TableCell>
-                        <TableCell>{item.approver_id}</TableCell>
+
                         <TableCell>
                           {item?.coborrower?.first_name}{" "}
                           {item?.coborrower?.middle_name}{" "}
                           {item?.coborrower?.last_name}
                         </TableCell>
+                        <TableCell>{item?.coborrower_status}</TableCell>
                         <TableCell>
-                          <span
-                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              item.status === "admin"
-                                ? "bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400"
-                                : item.status === "staff"
-                                  ? "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400"
-                                  : "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"
-                            }`}
-                          >
-                            {item.status}
-                          </span>
+                          <div className="flex  gap-2">
+                            {item?.status == "pending" ? (
+                              <p className="flex rounded-full px-2.5 py-0.5 text-xs gap-1 bg-yellow-100 text-yellow-700 border-yellow-300">
+                                {item?.status}
+                              </p>
+                            ) : item?.status == "approved" ? (
+                              <p className="flex rounded-full px-2.5 py-0.5 text-xs gap-1 bg-green-100 text-green-700 border-green-300">
+                                {item?.status}
+                              </p>
+                            ) : item?.status == "rejected" ? (
+                              <p className="flex rounded-full px-2.5 py-0.5 text-xs gap-1 bg-red-100 text-red-700 border-red-300">
+                                ✘ {item?.status}
+                              </p>
+                            ) : (
+                              ""
+                            )}
+                          </div>
                         </TableCell>
 
                         <TableCell>
@@ -303,13 +316,10 @@ export default function Dashboard() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-2">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              // onClick={() => handleOpenDialog(user)}
-                            >
+                            <Link to={`/loans/${item.id}`}>
                               <Eye className="h-4 w-4" />
-                            </Button>
+                            </Link>
+
                             {/* <Button
                             variant="ghost"
                             size="icon"

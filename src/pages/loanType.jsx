@@ -297,6 +297,14 @@ export function LoanType() {
     formData.term_months,
   ]);
 
+  const getTodayDate = () => {
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    return now.toISOString().split("T")[0];
+  };
+
+  const today = getTodayDate();
+
   if (isLoading) return <p>Loading...</p>;
   if (isError) return <p>Something went wrong</p>;
 
@@ -517,6 +525,7 @@ export function LoanType() {
                           <Input
                             type="date"
                             value={item.value}
+                            min={today}
                             name={`date-${index}`}
                             onChange={(e) => {
                               setFormData((prev) => ({

@@ -20,8 +20,8 @@ export function useFetchLoansAsApprover() {
       *,
       coborrowers:coborrower_id (*),
       member:member_id (*),
-      type:loan_type_id (*),
-      payment_dates:loan_payments (*)
+      type:loan_type_id (*,special_payment_date(*))
+      
     `,
         )
         .neq("coborrower_id", user.id)
