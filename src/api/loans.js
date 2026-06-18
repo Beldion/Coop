@@ -128,3 +128,35 @@ export function useCreateLoanPayments() {
     },
   });
 }
+
+export function useFetchSingleLoan(loanId) {
+  const queryClient = useQueryClient();
+  return useQuery({
+    queryKey: ["loan", loanId],
+    enabled: !!loanId,
+    queryFn: async () => {
+      const authProfile = queryClient.getQueryData(["auth-profile"]);
+
+      const user = authProfile?.user;
+
+      if (!user) throw new Error("No user");
+
+      const { data, error } = await supabase
+        .from("loans")
+        .select(
+          `
+          *,
+          member:member_id (*),
+          coborrower:coborrower_id (*),
+          loan_type:loan_type_id (*),
+            loan_payments (*)
+        `,
+        )
+        .eq("member_id", user.id)
+        .eq("id", loanId)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+  });
+}

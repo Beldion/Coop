@@ -43,6 +43,7 @@ import {
   useRejectAsCoborrower,
 } from "@/api/coborrowers";
 import { TableSkeleton } from "@/components/TableSkeleton";
+import { Label } from "@/components/ui/label";
 export default function CoBorrowersPage() {
   const { data: coBorrowers, isLoading, isError } = useFetchLoansAsCoborrower();
 
@@ -65,6 +66,7 @@ export default function CoBorrowersPage() {
       coborrower_status: item?.coborrower_status,
       apply_date: format(new Date(item?.created_at), "MMM dd, yyyy"),
       loan_status: item?.status,
+      special_dates: item?.loan_type?.special_payment_date,
     });
   };
 
@@ -77,8 +79,6 @@ export default function CoBorrowersPage() {
         term_months,
         loan_type,
       } = selectedLoanType;
-
-      console.log("test", term_months);
       return generateDates(
         service_fee,
         loan_amount,
@@ -341,32 +341,59 @@ export default function CoBorrowersPage() {
               </Card>
 
               <Card>
-                <CardHeader>
-                  <CardTitle className="text-xl">
-                    Payment Sample Computation
-                  </CardTitle>
-                </CardHeader>
                 <CardContent className="space-y-4">
-                  {generatedDates && generatedDates.length > 0 && (
-                    <div className="flex flex-col gap-2 text-lg text-muted-foreground">
-                      {generatedDates.length === 1 ? (
-                        <p>{generatedDates[0]}</p>
-                      ) : (
-                        generatedDates
-                          .reduce((acc, curr, i) => {
-                            if (i % 2 === 0) {
-                              const next = generatedDates[i + 1];
-                              acc.push(next ? `${curr}, ${next}` : curr); // fallback if odd
-                            }
-                            return acc;
-                          }, [])
-                          .map((range, index) => (
-                            <p key={index} className="py-0.5">
-                              {range}
-                            </p>
-                          ))
+                  {selectedLoanType?.special_dates?.length > 0 && (
+                    <>
+                      <p className="text-lg font-semibold">Payment Schedule</p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {selectedLoanType?.special_dates?.map((item) => (
+                          <div
+                            key={item.id}
+                            className="grid grid-cols-2 gap-4 "
+                          >
+                            <div className="space-y-2 ">
+                              <Label className="text-sm">Payment Date</Label>
+                              <p>{item.term_date}</p>
+                            </div>
+                            <div className="space-y-2 ">
+                              <Label className="text-sm">Amount</Label>
+                              <p>₱{item.amount?.toLocaleString()}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                  {selectedLoanType?.loan_type != "Special" && (
+                    <>
+                      <CardHeader>
+                        <CardTitle className="text-xl">
+                          Payment Sample Computation
+                        </CardTitle>
+                      </CardHeader>
+
+                      {generatedDates && generatedDates.length > 0 && (
+                        <div className="flex flex-col gap-2 text-lg text-muted-foreground">
+                          {generatedDates.length === 1 ? (
+                            <p>{generatedDates[0]}</p>
+                          ) : (
+                            generatedDates
+                              .reduce((acc, curr, i) => {
+                                if (i % 2 === 0) {
+                                  const next = generatedDates[i + 1];
+                                  acc.push(next ? `${curr}, ${next}` : curr); // fallback if odd
+                                }
+                                return acc;
+                              }, [])
+                              .map((range, index) => (
+                                <p key={index} className="py-0.5">
+                                  {range}
+                                </p>
+                              ))
+                          )}
+                        </div>
                       )}
-                    </div>
+                    </>
                   )}
                 </CardContent>
               </Card>

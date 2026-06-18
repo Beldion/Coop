@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useParams } from "react-router-dom";
 import { useStore } from "@/store/useStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,78 +31,82 @@ import {
 import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { Link } from "react-router-dom";
+import {
+  useCreateUserLoan,
+  useUserLoans,
+  useUserLoanTypes,
+  useCreateLoanPayments,
+  useFetchSingleLoan,
+} from "@/api/loans";
+export function LoanDetailsPage() {
+  const { users, payments, addPayment, deletePayment } = useStore();
 
-export function LoanDetailsPage({ loanId = "L001" }) {
-  const { loans, users, payments, addPayment, deletePayment } = useStore();
+  const { id } = useParams();
 
-  console.log("LoanDetailsPage render", { loanId, loans, users, payments });
+  const { data: loan, isLoading, isError } = useFetchSingleLoan(id);
+  console.log("LoanDetailsPage render sssss", loan, id);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [formData, setFormData] = useState({
-    amount: "",
-    payment_date: new Date().toISOString().split("T")[0],
-    payment_method: "cash",
-  });
+  // const loan = useMemo(() => {
+  //   return loans.find((l) => l.id === id);
+  // }, [loans, loanId]);
 
-  const loan = useMemo(() => {
-    return loans.find((l) => l.id === loanId);
-  }, [loans, loanId]);
+  // const member = useMemo(() => {
+  //   return users.find((u) => u.id === loan?.member_id);
+  // }, [users, loan]);
 
-  const member = useMemo(() => {
-    return users.find((u) => u.id === loan?.member_id);
-  }, [users, loan]);
+  // const loanPayments = useMemo(() => {
+  //   return payments
+  //     .filter((p) => p.loan_id === loanId)
+  //     .sort(
+  //       (a, b) =>
+  //         new Date(b.payment_date).getTime() -
+  //         new Date(a.payment_date).getTime(),
+  //     );
+  // }, [payments, loanId]);
 
-  const loanPayments = useMemo(() => {
-    return payments
-      .filter((p) => p.loan_id === loanId)
-      .sort(
-        (a, b) =>
-          new Date(b.payment_date).getTime() -
-          new Date(a.payment_date).getTime(),
-      );
-  }, [payments, loanId]);
+  // const totalPaid = useMemo(() => {
+  //   return loanPayments.reduce((sum, payment) => sum + payment.amount, 0);
+  // }, [loanPayments]);
 
-  const totalPaid = useMemo(() => {
-    return loanPayments.reduce((sum, payment) => sum + payment.amount, 0);
-  }, [loanPayments]);
+  // const remainingBalance = useMemo(() => {
+  //   if (!loan) return 0;
+  //   const totalWithInterest =
+  //     loan.loan_amount + (loan.loan_amount * loan.interest_rate) / 100;
+  //   return totalWithInterest - totalPaid;
+  // }, [loan, totalPaid]);
 
-  const remainingBalance = useMemo(() => {
-    if (!loan) return 0;
-    const totalWithInterest =
-      loan.loan_amount + (loan.loan_amount * loan.interest_rate) / 100;
-    return totalWithInterest - totalPaid;
-  }, [loan, totalPaid]);
+  // const handleOpenDialog = () => {
+  //   setFormData({
+  //     amount: "",
+  //     payment_date: new Date().toISOString().split("T")[0],
+  //     payment_method: "cash",
+  //   });
+  //   setDialogOpen(true);
+  // };
 
-  const handleOpenDialog = () => {
-    setFormData({
-      amount: "",
-      payment_date: new Date().toISOString().split("T")[0],
-      payment_method: "cash",
-    });
-    setDialogOpen(true);
-  };
+  // const handleSubmit = (e) => {
+  //   e.preventDefault();
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  //   if (!loanId) return;
 
-    if (!loanId) return;
+  //   addPayment({
+  //     loan_id: loanId,
+  //     amount: parseFloat(formData.amount),
+  //     payment_date: new Date(formData.payment_date).toISOString(),
+  //     payment_method: formData.payment_method,
+  //   });
 
-    addPayment({
-      loan_id: loanId,
-      amount: parseFloat(formData.amount),
-      payment_date: new Date(formData.payment_date).toISOString(),
-      payment_method: formData.payment_method,
-    });
+  //   toast.success("Payment added successfully");
+  //   setDialogOpen(false);
+  // };
 
-    toast.success("Payment added successfully");
-    setDialogOpen(false);
-  };
-
-  const handleDeletePayment = (paymentId) => {
-    if (window.confirm("Are you sure you want to delete this payment?")) {
-      deletePayment(paymentId);
-      toast.success("Payment deleted successfully");
-    }
-  };
+  // const handleDeletePayment = (paymentId) => {
+  //   if (window.confirm("Are you sure you want to delete this payment?")) {
+  //     deletePayment(paymentId);
+  //     toast.success("Payment deleted successfully");
+  //   }
+  // };
 
   if (!loan) {
     return (
@@ -118,18 +123,18 @@ export function LoanDetailsPage({ loanId = "L001" }) {
     );
   }
 
-  const totalWithInterest =
-    loan.loan_amount + (loan.loan_amount * loan.interest_rate) / 100;
-  const monthlyPayment = totalWithInterest / loan.term_months;
+  // const totalWithInterest =
+  //   loan.loan_amount + (loan.loan_amount * loan.interest_rate) / 100;
+  // const monthlyPayment = totalWithInterest / loan.term_months;
 
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <Link to="/loans">
+        {/* <Link to="/loans">
           <Button variant="ghost" size="icon">
             <ArrowLeft className="h-5 w-5" />
           </Button>
-        </Link>
+        </Link> */}
         <div>
           <h1 className="text-3xl font-bold">Loan Details</h1>
           <p className="text-muted-foreground mt-1">Loan ID: {loan.id}</p>
@@ -145,35 +150,66 @@ export function LoanDetailsPage({ loanId = "L001" }) {
           <CardContent className="space-y-4">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Member</span>
-              <span className="font-medium">{member?.name}</span>
+              <span className="font-medium">{loan?.member?.first_name}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Loan Amount</span>
               <span className="font-medium">
-                ₱{loan.loan_amount.toLocaleString()}
+                ₱{loan?.loan_type?.loan_amount.toLocaleString()}
               </span>
             </div>
             <div className="flex justify-between">
+              <span className="text-muted-foreground">Loan Type</span>
+              <span className="font-medium">{loan?.loan_type?.loan_type}</span>
+            </div>
+            <div className="flex justify-between">
               <span className="text-muted-foreground">Interest Rate</span>
-              <span className="font-medium">{loan.interest_rate}%</span>
+              <span className="font-medium">
+                {loan?.loan_type?.interest_rate}%
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Service fee</span>
+              <span className="font-medium">
+                {loan?.loan_type?.service_fee}%
+              </span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Term</span>
-              <span className="font-medium">{loan.term_months} months</span>
+              <span className="font-medium">
+                {loan?.loan_type?.term_months}
+              </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Monthly Payment</span>
+              <span className="text-muted-foreground">Co-borrower</span>
               <span className="font-medium">
-                ₱
-                {monthlyPayment.toLocaleString(undefined, {
-                  maximumFractionDigits: 2,
-                })}
+                {` ${loan?.coborrower?.first_name}
+                ${loan?.coborrower?.middle_name}
+                ${loan?.coborrower?.last_name}`}
+              </span>
+            </div>
+
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Co-borrower Status</span>
+
+              <span
+                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                  loan?.coborrower_status === "approved"
+                    ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"
+                    : loan?.coborrower_status === "pending"
+                      ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400"
+                      : loan?.coborrower_status === "rejected"
+                        ? "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400"
+                        : "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400"
+                }`}
+              >
+                {loan?.coborrower_status}
               </span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Start Date</span>
               <span className="font-medium">
-                {format(new Date(loan.start_date), "MMM dd, yyyy")}
+                {format(new Date(loan.created_at), "MMM dd, yyyy")}
               </span>
             </div>
             <div className="flex justify-between">
@@ -203,7 +239,7 @@ export function LoanDetailsPage({ loanId = "L001" }) {
             <div className="flex justify-between">
               <span className="text-muted-foreground">Principal Amount</span>
               <span className="font-medium">
-                ₱{loan.loan_amount.toLocaleString()}
+                ₱{loan?.loan_type?.loan_amount.toLocaleString()}
               </span>
             </div>
             <div className="flex justify-between">
@@ -211,22 +247,24 @@ export function LoanDetailsPage({ loanId = "L001" }) {
               <span className="font-medium">
                 ₱
                 {(
-                  (loan.loan_amount * loan.interest_rate) /
+                  (loan?.loan_type?.loan_amount *
+                    loan?.loan_type?.interest_rate) /
                   100
                 ).toLocaleString()}
               </span>
             </div>
+            {/*             
             <div className="flex justify-between">
               <span className="text-muted-foreground">Total Amount Due</span>
               <span className="font-medium">
-                ₱{totalWithInterest.toLocaleString()}
+                ₱{loan?.loan_type?.loan_amount.toLocaleString()}
               </span>
             </div>
             <div className="border-t pt-4">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Total Paid</span>
                 <span className="font-medium text-green-600 dark:text-green-400">
-                  ₱{totalPaid.toLocaleString()}
+                   ₱{totalPaid.toLocaleString()}
                 </span>
               </div>
             </div>
@@ -236,15 +274,15 @@ export function LoanDetailsPage({ loanId = "L001" }) {
                 ₱
                 {remainingBalance.toLocaleString(undefined, {
                   maximumFractionDigits: 2,
-                })}
+                })} 
               </span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Progress</span>
               <span className="font-medium">
-                {((totalPaid / totalWithInterest) * 100).toFixed(1)}%
+                {((totalPaid / totalWithInterest) * 100).toFixed(1)}% 
               </span>
-            </div>
+            </div> */}
           </CardContent>
         </Card>
       </div>
@@ -253,53 +291,59 @@ export function LoanDetailsPage({ loanId = "L001" }) {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>Payment History</CardTitle>
-            <Button onClick={handleOpenDialog}>
+            <CardTitle>Payment Schedule</CardTitle>
+            {/* <Button onClick={handleOpenDialog}>
               <Plus className="h-4 w-4 mr-2" />
               Add Payment
-            </Button>
+            </Button> */}
           </div>
         </CardHeader>
         <CardContent>
-          {loanPayments.length === 0 ? (
+          {loan?.loan_payments.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-muted-foreground">No payments yet</p>
+              <p className="text-muted-foreground">No payments schedule yet</p>
             </div>
           ) : (
             <div className="rounded-md border">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Payment ID</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Method</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead className="font-bold">Loan ID</TableHead>
+                    <TableHead className="font-bold">Amount</TableHead>
+                    <TableHead className="font-bold">Payment Method</TableHead>
+                    <TableHead className="font-bold">
+                      Payment Reference
+                    </TableHead>
+                    <TableHead className="font-bold">Paid Date</TableHead>
+
+                    <TableHead className="font-bold">Due Date</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {loanPayments.map((payment) => (
+                  {loan?.loan_payments.map((payment) => (
                     <TableRow key={payment.id}>
-                      <TableCell className="font-medium">
-                        {payment.id}
+                      <TableCell className="">{payment.id}</TableCell>
+                      <TableCell className="text-xl font-medium">
+                        {payment.amount.toLocaleString()}
                       </TableCell>
-                      <TableCell>₱{payment.amount.toLocaleString()}</TableCell>
                       <TableCell>
                         <span className="capitalize">
-                          {payment.payment_method}
+                          {payment?.payment_method}
                         </span>
                       </TableCell>
                       <TableCell>
-                        {format(new Date(payment.payment_date), "MMM dd, yyyy")}
+                        <span className="capitalize">{payment?.reference}</span>
                       </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDeletePayment(payment.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+
+                      <TableCell>
+                        {payment?.paid_date &&
+                          format(new Date(payment?.paid_date), "MMM dd, yyyy")}
+                      </TableCell>
+                      <TableCell>
+                        {format(
+                          new Date(payment?.payment_date),
+                          "MMM dd, yyyy",
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -311,7 +355,7 @@ export function LoanDetailsPage({ loanId = "L001" }) {
       </Card>
 
       {/* Add Payment Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      {/* <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Add Payment</DialogTitle>
@@ -383,7 +427,7 @@ export function LoanDetailsPage({ loanId = "L001" }) {
             </DialogFooter>
           </form>
         </DialogContent>
-      </Dialog>
+      </Dialog> */}
     </div>
   );
 }

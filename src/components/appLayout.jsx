@@ -63,13 +63,6 @@ const navigation = [
     icon: CreditCard,
     role: "admin",
   },
-
-  {
-    name: "Payments",
-    href: "/payments",
-    icon: CreditCard,
-    role: "admin",
-  },
 ];
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";

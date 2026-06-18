@@ -119,7 +119,7 @@ export default function ApprovalsPage() {
         loan_type,
       } = selectedLoanType?.type || {};
 
-      console.log("test", term_months);
+      console.log("test", selectedLoanType);
       return generateDates(
         service_fee,
         loan_amount,
@@ -509,35 +509,31 @@ export default function ApprovalsPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {selectedLoanType?.payment_dates?.length > 0 && (
+                  {selectedLoanType?.type?.special_payment_date?.length > 0 && (
                     <>
                       <p className="text-lg font-semibold">Payment Schedule</p>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {selectedLoanType?.payment_dates?.map((item) => (
-                          <div
-                            key={item.id}
-                            className="grid grid-cols-2 gap-4 "
-                          >
-                            <div className="space-y-2 ">
-                              <Label className="text-sm"> Date</Label>
-
-                              <p>
-                                {format(
-                                  new Date(item.payment_date),
-                                  "MM/dd/yyyy",
-                                )}
-                              </p>
+                        {selectedLoanType?.type?.special_payment_date?.map(
+                          (item) => (
+                            <div
+                              key={item.id}
+                              className="grid grid-cols-2 gap-4 "
+                            >
+                              <div className="space-y-2 ">
+                                <Label className="text-sm">Payment Date</Label>
+                                <p>{item.term_date}</p>
+                              </div>
+                              <div className="space-y-2 ">
+                                <Label className="text-sm">Amount</Label>
+                                <p>₱{item.amount?.toLocaleString()}</p>
+                              </div>
                             </div>
-                            <div className="space-y-2 ">
-                              <Label className="text-sm">Amount</Label>
-                              <p>₱{item.amount?.toLocaleString()}</p>
-                            </div>
-                          </div>
-                        ))}
+                          ),
+                        )}
                       </div>
                     </>
                   )}
-                  {!selectedLoanType?.payment_dates?.length > 0 &&
+                  {!selectedLoanType?.type?.special_payment_date.length > 0 &&
                     generatedDates &&
                     generatedDates.length > 0 && (
                       <div className="flex flex-col gap-2 text-lg text-muted-foreground">
