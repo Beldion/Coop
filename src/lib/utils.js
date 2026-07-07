@@ -89,7 +89,7 @@ export function generateDates(
         month: "long",
         day: "numeric",
         year: "numeric",
-      })} - ₱${computedMonthlyPayment()} 
+      })} - ${money(computedMonthlyPayment())} 
         `,
     );
 
@@ -99,3 +99,10 @@ export function generateDates(
   console.log("Generated Dates:", dates);
   return dates;
 }
+
+//Currency formatter
+export const money = (amount) =>
+  new Intl.NumberFormat("en-PH", {
+    style: "currency",
+    currency: "PHP",
+  }).format(amount);

@@ -77,12 +77,14 @@ export default function ApprovalsPage() {
 
   const handleOpenDialog = (item) => {
     setSelectedLoanType(item);
+
+    console.log("selected loan type", item);
     setSteps([
       {
         step: 1,
-        status: item.coborrower_status,
+        status: item.coborrowers == null ? "approved" : item.coborrower_status,
         date: item.coborrower_status_date,
-        isCompleted: item.coborrower_status == "approved",
+        isCompleted: item.coborrower_status == "approved" || item.coborrowers,
       },
       {
         step: 2,
@@ -198,8 +200,8 @@ export default function ApprovalsPage() {
                       <TableHead>Loan Name</TableHead>
                       <TableHead>Loan Type</TableHead>
 
-                      <TableHead>Co-borrower status</TableHead>
-                      <TableHead>Co-borrower Approve date</TableHead>
+                      {/* <TableHead>Co-borrower status</TableHead>
+                      <TableHead>Co-borrower Approve date</TableHead> */}
                       <TableHead>Status</TableHead>
 
                       <TableHead className="text-right">Actions</TableHead>
@@ -230,7 +232,7 @@ export default function ApprovalsPage() {
                           </span>
                         </TableCell>
 
-                        <TableCell>
+                        {/* <TableCell>
                           <div className="flex  gap-2">
                             {item?.coborrower_status == "pending" ? (
                               <p className="flex rounded-full px-2.5 py-0.5 text-xs gap-1 bg-yellow-100 text-yellow-700 border-yellow-300">
@@ -248,14 +250,20 @@ export default function ApprovalsPage() {
                               ""
                             )}
                           </div>
-                        </TableCell>
+                        </TableCell> */}
 
-                        <TableCell>
-                          {format(
-                            new Date(item?.coborrower_status_date),
-                            "MMM dd, yyyy",
+                        {/* <TableCell>
+                          {item?.coborrower_status_date ? (
+                            <p className="text-sm text-muted-foreground">
+                              {format(
+                                new Date(item?.coborrower_status_date),
+                                "MMM dd, yyyy",
+                              )}
+                            </p>
+                          ) : (
+                            "N/A"
                           )}
-                        </TableCell>
+                        </TableCell> */}
 
                         <TableCell>
                           <div className="flex  gap-2">
@@ -454,52 +462,62 @@ export default function ApprovalsPage() {
                       {selectedLoanType?.status}
                     </span>
                   </div>
-                  <div className="w-full h-[1px] my-4 bg-gray-200 dark:bg-gray-700"></div>
+                  {selectedLoanType?.coborrowers && (
+                    <>
+                      <div className="w-full h-[1px] my-4 bg-gray-200 dark:bg-gray-700"></div>
 
-                  <CardTitle className="text-xl">
-                    Co-borrowers Information
-                  </CardTitle>
+                      <CardTitle className="text-xl">
+                        Co-borrowers Information
+                      </CardTitle>
 
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground text-lg">Name</span>
-                    <span className="font-medium text-lg">
-                      {selectedLoanType?.member?.first_name}{" "}
-                      {selectedLoanType?.member?.middle_name}{" "}
-                      {selectedLoanType?.member?.last_name}
-                    </span>
-                  </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground text-lg">
+                          Name
+                        </span>
+                        <span className="font-medium text-lg">
+                          {selectedLoanType?.coborrowers?.first_name}{" "}
+                          {selectedLoanType?.coborrowers?.middle_name}{" "}
+                          {selectedLoanType?.coborrowers?.last_name}
+                        </span>
+                      </div>
 
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground text-lg">
-                      Approved / Rejected Date
-                    </span>
-                    <span className="font-medium text-lg">
-                      {selectedLoanType?.coborrower_status_date
-                        ? format(
-                            new Date(selectedLoanType?.coborrower_status_date),
-                            "MM/dd/yyyy",
-                          )
-                        : "N/A"}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground text-lg">
-                      Status
-                    </span>
-                    <span
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        selectedLoanType?.coborrower_status === "approved"
-                          ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"
-                          : selectedLoanType?.coborrower_status === "pending"
-                            ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400"
-                            : selectedLoanType?.coborrower_status === "rejected"
-                              ? "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400"
-                              : "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400"
-                      }`}
-                    >
-                      {selectedLoanType?.coborrower_status}
-                    </span>
-                  </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground text-lg">
+                          Approved / Rejected Date
+                        </span>
+                        <span className="font-medium text-lg">
+                          {selectedLoanType?.coborrower_status_date
+                            ? format(
+                                new Date(
+                                  selectedLoanType?.coborrower_status_date,
+                                ),
+                                "MM/dd/yyyy",
+                              )
+                            : "N/A"}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground text-lg">
+                          Status
+                        </span>
+                        <span
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            selectedLoanType?.coborrower_status === "approved"
+                              ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"
+                              : selectedLoanType?.coborrower_status ===
+                                  "pending"
+                                ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400"
+                                : selectedLoanType?.coborrower_status ===
+                                    "rejected"
+                                  ? "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400"
+                                  : "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400"
+                          }`}
+                        >
+                          {selectedLoanType?.coborrower_status}
+                        </span>
+                      </div>
+                    </>
+                  )}
                 </CardContent>
               </Card>
               <Card>
