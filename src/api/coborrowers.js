@@ -19,7 +19,7 @@ export function useFetchLoansAsCoborrower() {
           `
       *,
       member:member_id (*),
-      loan_type:loan_type_id (*)
+      loan_type:loan_type_id (*, special_payment_date(*))
     `,
         )
         .eq("coborrower_id", user.id);

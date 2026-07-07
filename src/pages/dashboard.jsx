@@ -27,27 +27,45 @@ import {
 } from "@/components/ui/dialog";
 import { Plus, Search, Pencil, Trash2, Edit, Save, X, Eye } from "lucide-react";
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+
 import { generateDates } from "@/lib/utils";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { Label } from "@/components/ui/label";
-import { useCreateUserLoan, useUserLoans, useUserLoanTypes } from "@/api/loans";
+import {
+  useCreateUserLoan,
+  useUserLoans,
+  useUserLoanTypes,
+  useCreateLoanPayments,
+} from "@/api/loans";
 import UserSearch from "@/components/userSearch";
 import { TableSkeleton } from "@/components/TableSkeleton";
+import { Link } from "react-router-dom";
 export default function Dashboard() {
   const createUserLoan = useCreateUserLoan();
+  const createLoanPayment = useCreateLoanPayments();
   const { data, isError, isLoading } = useUserLoanTypes();
 
   const { data: loans } = useUserLoans();
-
   const [selectedLoanType, setSelectedLoanType] = useState(null);
+  const [saveConfirm, setSaveConfirm] = useState(false);
 
   const handleCloseDialog = () => {
     setSelectedLoanType(null);
   };
 
   const handleOpenDialog = (item) => {
-    console.log(item);
     setSelectedLoanType({
       loan_id: item.id,
       loan_name: item.loan_name,
@@ -56,9 +74,9 @@ export default function Dashboard() {
       interest_rate: item.interest_rate,
       service_fee: item.service_fee,
       term_months: item.term_months,
+      special_dates: item.special_payment_date,
     });
   };
-
   const generatedDates = useMemo(() => {
     if (selectedLoanType) {
       const {
@@ -96,8 +114,25 @@ export default function Dashboard() {
       toast.error(res.error.message || "Failed to create loan");
       return;
     } else {
+      // if (res[0]?.loan_type?.loan_type === "Special") {
+      //   const resLoanPayments = await createLoanPayment.mutateAsync(
+      //     selectedLoanType.special_dates.map((item) => ({
+      //       loan_id: res[0].id,
+      //       payment_date: item.term_date,
+      //       amount: item.amount,
+      //     })),
+      //   );
+
+      //   if (resLoanPayments.error) {
+      //     toast.error(
+      //       resLoanPayments.error.message || "Failed to create loan payments",
+      //     );
+      //     return;
+      //   }
+      // }
       toast.success("Loan created successfully");
       setSelectedLoanType(null);
+      setSaveConfirm(false);
     }
 
     // closed dialog and reset selected loan type
@@ -117,10 +152,10 @@ export default function Dashboard() {
           </p>
         </div>
 
-        {/* Available Loans */}
+        {/* Available Loans Type */}
         <Card>
           <CardHeader>
-            <CardTitle>Available Loans</CardTitle>
+            <CardTitle>Available Loans </CardTitle>
           </CardHeader>
 
           <CardContent>
@@ -208,7 +243,7 @@ export default function Dashboard() {
             )}
           </CardContent>
         </Card>
-        {/* Recent Transactions */}
+        {/* Recent Transactions - loans*/}
         <Card>
           <CardHeader>
             <CardTitle>Your Loans</CardTitle>
@@ -223,10 +258,13 @@ export default function Dashboard() {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead>Amount</TableHead>
+
                       <TableHead>Loan Name</TableHead>
                       <TableHead>Loan Type</TableHead>
-                      <TableHead>Approve By</TableHead>
                       <TableHead>Co-borrower</TableHead>
+                      <TableHead>Co-borrower Status</TableHead>
+
                       <TableHead>Status</TableHead>
                       <TableHead>Created at</TableHead>
 
@@ -236,6 +274,9 @@ export default function Dashboard() {
                   <TableBody>
                     {loans?.map((item) => (
                       <TableRow key={item.id}>
+                        <TableCell className="font-medium text-xl">
+                          ₱{item?.loan_type?.loan_amount.toLocaleString()}
+                        </TableCell>
                         <TableCell className="font-medium">
                           {item.loan_type.loan_name}
                         </TableCell>
@@ -243,24 +284,31 @@ export default function Dashboard() {
                         <TableCell className="font-medium">
                           {item.loan_type.loan_type}
                         </TableCell>
-                        <TableCell>{item.approver_id}</TableCell>
+
                         <TableCell>
                           {item?.coborrower?.first_name}{" "}
                           {item?.coborrower?.middle_name}{" "}
                           {item?.coborrower?.last_name}
                         </TableCell>
+                        <TableCell>{item?.coborrower_status}</TableCell>
                         <TableCell>
-                          <span
-                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              item.status === "admin"
-                                ? "bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400"
-                                : item.status === "staff"
-                                  ? "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400"
-                                  : "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"
-                            }`}
-                          >
-                            {item.status}
-                          </span>
+                          <div className="flex  gap-2">
+                            {item?.status == "pending" ? (
+                              <p className="flex rounded-full px-2.5 py-0.5 text-xs gap-1 bg-yellow-100 text-yellow-700 border-yellow-300">
+                                {item?.status}
+                              </p>
+                            ) : item?.status == "approved" ? (
+                              <p className="flex rounded-full px-2.5 py-0.5 text-xs gap-1 bg-green-100 text-green-700 border-green-300">
+                                {item?.status}
+                              </p>
+                            ) : item?.status == "rejected" ? (
+                              <p className="flex rounded-full px-2.5 py-0.5 text-xs gap-1 bg-red-100 text-red-700 border-red-300">
+                                ✘ {item?.status}
+                              </p>
+                            ) : (
+                              ""
+                            )}
+                          </div>
                         </TableCell>
 
                         <TableCell>
@@ -268,13 +316,10 @@ export default function Dashboard() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-2">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              // onClick={() => handleOpenDialog(user)}
-                            >
+                            <Link to={`/loans/${item.id}`}>
                               <Eye className="h-4 w-4" />
-                            </Button>
+                            </Link>
+
                             {/* <Button
                             variant="ghost"
                             size="icon"
@@ -322,63 +367,55 @@ export default function Dashboard() {
               <Label htmlFor="search" className="text-sm">
                 Search for co-borrower (optional)
               </Label>
-              {/* <Input
-                placeholder="Search user..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              /> */}
-
-              {/* {loading ? (
-                <p>Loading...</p>
-              ) : (
-                <div className="space-y-2">
-                  {users.map((user) => (
-                    <div
-                      key={user.id}
-                      className={`flex items-center gap-4 border rounded-lg p-3 cursor-pointer hover:bg-muted ${user.id === selectedLoanType?.coborrower ? "bg-muted" : ""}`}
-                      onClick={() => {
-                        setSelectedLoanType((prev) => ({
-                          ...prev,
-                          coborrower: user.id,
-                        }));
-                        console.log("selected coborrower", selectedLoanType);
-                      }}
-                    >
-                      <p>
-                        {user.first_name} {user.middle_name} {user.last_name}
-                      </p>
-                      <p>{user.email}</p>
-                      <p>{user.role}</p>
-                    </div>
-                  ))}
-                </div>
-              )} */}
 
               <UserSearch setSelectedLoanType={setSelectedLoanType} />
             </div>
-            {generatedDates && generatedDates.length > 0 && (
-              <div className="text-sm text-muted-foreground">
-                <p className="mb-2 text-md">Sample Computations:</p>
-
-                {generatedDates.length === 1 ? (
-                  <p>{generatedDates[0]}</p>
-                ) : (
-                  generatedDates
-                    .reduce((acc, curr, i) => {
-                      if (i % 2 === 0) {
-                        const next = generatedDates[i + 1];
-                        acc.push(next ? `${curr}, ${next}` : curr); // fallback if odd
-                      }
-                      return acc;
-                    }, [])
-                    .map((range, index) => (
-                      <p key={index} className="py-0.5">
-                        {range}
-                      </p>
-                    ))
-                )}
-              </div>
+            {selectedLoanType?.special_dates?.length > 0 && (
+              <>
+                <p className="text-lg font-semibold">Payment Schedule</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {selectedLoanType?.special_dates?.map((item) => (
+                    <div key={item.id} className="grid grid-cols-2 gap-4 ">
+                      <div className="space-y-2 ">
+                        <Label className="text-sm">
+                          Term {item.term_number} - Payment Date
+                        </Label>
+                        <p>{item.term_date}</p>
+                      </div>
+                      <div className="space-y-2 ">
+                        <Label className="text-sm">Amount</Label>
+                        <p>₱{item.amount?.toLocaleString()}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
             )}
+            {!selectedLoanType?.special_dates?.length > 0 &&
+              generatedDates &&
+              generatedDates.length > 0 && (
+                <div className="text-sm text-muted-foreground">
+                  <p className="mb-2 text-md">Sample Computations:</p>
+
+                  {generatedDates.length === 1 ? (
+                    <p>{generatedDates[0]}</p>
+                  ) : (
+                    generatedDates
+                      .reduce((acc, curr, i) => {
+                        if (i % 2 === 0) {
+                          const next = generatedDates[i + 1];
+                          acc.push(next ? `${curr}, ${next}` : curr); // fallback if odd
+                        }
+                        return acc;
+                      }, [])
+                      .map((range, index) => (
+                        <p key={index} className="py-0.5">
+                          {range}
+                        </p>
+                      ))
+                  )}
+                </div>
+              )}
 
             <div className="space-y-4">
               <div className="flex items-center gap-3">
@@ -440,7 +477,16 @@ export default function Dashboard() {
               </Button>
 
               <Button
-                onClick={handleApplyLoan}
+                onClick={() => {
+                  if (selectedLoanType.accepted !== true) {
+                    toast.error(
+                      "You must accept the terms and conditions to apply for this loan",
+                    );
+
+                    return;
+                  }
+                  setSaveConfirm(true);
+                }}
                 disabled={createUserLoan.isPending}
               >
                 {createUserLoan.isPending ? "Applying..." : "Apply this Loan"}
@@ -449,6 +495,28 @@ export default function Dashboard() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={saveConfirm} onOpenChange={setSaveConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Save?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to save these changes?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <AlertDialogFooter>
+            <AlertDialogAction
+              disabled={createUserLoan.isPending}
+              onClick={handleApplyLoan}
+              className="grey:bg-green-600 bg-green-500 hover:bg-green-600 focus:ring-green-600"
+            >
+              {createUserLoan.isPending ? "Applying..." : "Yes"}
+            </AlertDialogAction>
+            <AlertDialogCancel>No</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

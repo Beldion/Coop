@@ -20,11 +20,14 @@ export function useFetchLoansAsApprover() {
       *,
       coborrowers:coborrower_id (*),
       member:member_id (*),
-      type:loan_type_id (*)
+      type:loan_type_id (*,special_payment_date(*))
+      
     `,
         )
-        .neq("coborrower_id", user.id)
-        .neq("member_id", user.id);
+        // .neq("coborrower_id", user.id)
+        .neq("member_id", user.id)
+        .neq("status", "restructured")
+        .or(`coborrower_id.is.null,coborrower_id.neq.${user.id}`);
 
       // if (user.role == "approver-2") {
       //   query = query.eq("approver_1_status", "approved");
