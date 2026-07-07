@@ -67,8 +67,8 @@ export function LoanType() {
     interest_rate: "",
     term_months: "",
     service_fee: "",
-    total_payable: "",
-    special_dates: [],
+    // total_payable: "",
+    // special_dates: [],
   };
 
   const [formData, setFormData] = useState(initialData);
@@ -229,21 +229,25 @@ export function LoanType() {
 
       return Object.entries(formData).some(([key, value]) => {
         if (key === "special_dates") {
+          console.log("special Date", value);
           return value.some((item) => {
             const empty = isEmpty(item.value);
-
+            // console.log("key", key, value);
             return empty;
           });
         }
 
         const empty = isEmpty(value);
-
         return empty;
       });
     };
 
     if (hasEmptyField(formData)) {
-      console.log("Form data has empty fields:", formData);
+      console.log(
+        "Form data has empty fields:",
+        formData,
+        hasEmptyField(formData),
+      );
       toast.error("Please fill in all required fields");
       return;
     }
@@ -252,10 +256,14 @@ export function LoanType() {
       new Decimal(0),
     );
 
-    console.log("Computed total:", total.toFixed(2));
-    if (formData.total_payable.toFixed(2) !== total.toFixed(2)) {
+    console.log("Computed total:", formData?.total_payable);
+    if (
+      formData?.total_payable &&
+      formData.loan_type == "Special" &&
+      formData?.total_payable?.toFixed(2) !== total.toFixed(2)
+    ) {
       toast.error(
-        "Total payable does not match sum of special payment amounts",
+        `${formData.loan_type} "Total payable does not match sum of special payment amounts"}`,
       );
       return;
     }
