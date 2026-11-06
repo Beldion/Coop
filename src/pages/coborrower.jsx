@@ -34,7 +34,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Plus, Search, Pencil, Trash2, Edit, Save, X, Eye } from "lucide-react";
 
-import { generateDates } from "@/lib/utils";
+import { generateDates, money } from "@/lib/utils";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import {
@@ -285,7 +285,7 @@ export default function CoBorrowersPage() {
                       Loan Amount
                     </span>
                     <span className="font-medium text-lg">
-                      ₱{selectedLoanType?.loan_amount?.toLocaleString()}
+                      {money(selectedLoanType?.loan_amount)}
                     </span>
                   </div>
                   <div className="flex justify-between">
@@ -357,7 +357,7 @@ export default function CoBorrowersPage() {
                             </div>
                             <div className="space-y-2 ">
                               <Label className="text-sm">Amount</Label>
-                              <p>₱{item.amount?.toLocaleString()}</p>
+                              <p>{money(item.amount)}</p>
                             </div>
                           </div>
                         ))}

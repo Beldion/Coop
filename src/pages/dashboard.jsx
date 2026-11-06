@@ -39,7 +39,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
-import { generateDates } from "@/lib/utils";
+import { generateDates, money } from "@/lib/utils";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { Label } from "@/components/ui/label";
@@ -180,7 +180,7 @@ export default function Dashboard() {
                     {data?.map((item) => (
                       <TableRow key={item?.loan_id}>
                         <TableCell className="font-medium text-lg">
-                          ₱{item?.loan_amount.toLocaleString()}
+                          {money(item?.loan_amount)}
                         </TableCell>
                         <TableCell className="font-medium">
                           {item?.loan_name}
@@ -275,7 +275,7 @@ export default function Dashboard() {
                     {loans?.map((item) => (
                       <TableRow key={item.id}>
                         <TableCell className="font-medium text-xl">
-                          ₱{item?.loan_type?.loan_amount.toLocaleString()}
+                          {money(item?.loan_type?.loan_amount)}
                         </TableCell>
                         <TableCell className="font-medium">
                           {item.loan_type.loan_name}
@@ -299,6 +299,10 @@ export default function Dashboard() {
                               </p>
                             ) : item?.status == "approved" ? (
                               <p className="flex rounded-full px-2.5 py-0.5 text-xs gap-1 bg-green-100 text-green-700 border-green-300">
+                                {item?.status}
+                              </p>
+                            ) : item?.status == "restructured" ? (
+                              <p className="flex rounded-full px-2.5 py-0.5 text-xs gap-1 bg-blue-100 text-blue-700 border-blue-300">
                                 {item?.status}
                               </p>
                             ) : item?.status == "rejected" ? (
@@ -355,7 +359,7 @@ export default function Dashboard() {
               Loan Type: {selectedLoanType?.loan_type}
             </p>
             <p className="text-lg pb-2 border-b boder-muted-foreground">
-              Loan Amount: ₱{selectedLoanType?.loan_amount?.toLocaleString()}
+              Loan Amount: {money(selectedLoanType?.loan_amount)}
             </p>
             <p className="text-lg pb-2 border-b boder-muted-foreground ">
               Loan Interest: {selectedLoanType?.interest_rate}%
@@ -384,7 +388,7 @@ export default function Dashboard() {
                       </div>
                       <div className="space-y-2 ">
                         <Label className="text-sm">Amount</Label>
-                        <p>₱{item.amount?.toLocaleString()}</p>
+                        <p>{money(item.amount).toLocaleString()}</p>
                       </div>
                     </div>
                   ))}

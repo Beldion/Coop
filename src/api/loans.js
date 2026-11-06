@@ -1,4 +1,9 @@
-import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import {
+  useQuery,
+  keepPreviousData,
+  useQueryClient,
+  useMutation,
+} from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 
 export function useUserLoanTypes() {
@@ -165,61 +170,6 @@ export function useFetchSingleLoan(loanId) {
 }
 
 // GET All loans for restructuring
-// export function useFetchAllLoans({ search, page = 1, pageSize = 10 }) {
-//   const queryClient = useQueryClient();
-
-//   return useQuery({
-//     queryKey: ["restructure-loans", search, page, pageSize],
-//     queryFn: async () => {
-//       const authProfile = queryClient.getQueryData(["auth-profile"]);
-//       const user = authProfile?.user;
-
-//       if (!user) throw new Error("No user");
-
-//       const from = (page - 1) * pageSize;
-//       const to = from + pageSize - 1;
-
-//       let query = supabase
-//         .from("loans")
-//         .select(
-//           `
-//           *,
-//           member:users!loans_member_id_fkey!inner (*),
-//           coborrower:coborrower_id (*),
-//           loan_type:loan_type_id (*),
-//           loan_payments (*)
-//         `,
-//           { count: "exact" },
-//         )
-//         .eq("status", "approved")
-//         .neq("member_id", user.id)
-//         .order("created_at", { ascending: false })
-//         .range(from, to);
-
-//       if (search) {
-//         query = query.or(
-//           `first_name.ilike.%${search}%,middle_name.ilike.%${search}%,last_name.ilike.%${search}%`,
-//           {
-//             referencedTable: "users",
-//           },
-//         );
-//       }
-
-//       const { data, error, count } = await query;
-
-//       if (error) throw error;
-
-//       return {
-//         loans: data || [],
-//         count: count || 0,
-//         totalPages: Math.ceil((count || 0) / pageSize),
-//       };
-//     },
-//     placeholderData: (previousData) => previousData,
-//   });
-// }
-
-// GET All loans for restructuring
 export function useFetchAllLoans({ search, page = 1, pageSize = 10 }) {
   const queryClient = useQueryClient();
 
@@ -282,5 +232,106 @@ export function useRestructureLoan() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["restructure-loans"] });
     },
+  });
+}
+
+//reports
+
+// export function useLoans(page = 1) {
+//   return useQuery({
+//     queryKey: ["reports", page],
+//     queryFn: async () => {
+//       const from = (page - 1) * PAGE_SIZE;
+//       const to = from + PAGE_SIZE - 1;
+
+//       const { data, error, count } = await supabase
+//         .from("loan_payments")
+//         .select(
+//           `
+//           *,
+//           // member:member_id (*),
+//           // coborrower:coborrower_id (*),
+//           // loan_type:loan_type_id (*),
+//           loans (*)
+//         `,
+//           { count: "exact" },
+//         )
+//         .order("created_at", { ascending: false })
+//         .range(from, to);
+
+//       if (error) throw error;
+
+//       return {
+//         loans: data || [],
+//         total: count || 0,
+//         totalPages: Math.ceil((count || 0) / PAGE_SIZE),
+//       };
+//     },
+//     keepPreviousData: true,
+//   });
+// }
+
+export function useLoans({
+  page,
+  pageSize,
+  search,
+  startDate,
+  endDate,
+  paymentFilter,
+}) {
+  return useQuery({
+    queryKey: [
+      "reports",
+      page,
+      pageSize,
+      search,
+      startDate,
+      endDate,
+      paymentFilter,
+    ],
+
+    queryFn: async () => {
+      const { data, error, count } = await supabase.rpc(
+        "get_filtered_loan_payments",
+        {
+          p_search_text: search || null,
+          p_start_date: startDate || null,
+          p_end_date: endDate || null,
+          p_payment_filter: paymentFilter,
+          p_page_number: page,
+          p_page_size: pageSize,
+        },
+      );
+
+      if (error) {
+        throw error;
+      }
+
+      console.log("'get_filtered_loan_payments' response:", {
+        data,
+        error,
+        count,
+      });
+      return {
+        payments: data?.payments ?? [],
+        pagination: {
+          page: Number(data?.pagination?.page ?? 1),
+          pageSize: Number(data?.pagination?.page_size ?? pageSize),
+          total: Number(data?.pagination?.total ?? 0),
+          totalPages: Number(data?.pagination?.total_pages ?? 0),
+          hasPrevious: Boolean(data?.pagination?.has_previous),
+          hasNext: Boolean(data?.pagination?.has_next),
+        },
+      };
+    },
+    getNextPageParam: (lastPage) => lastPage.nextPage,
+    placeholderData: keepPreviousData,
+    staleTime: 60_000,
+
+    // Prevent unused pages from staying in memory indefinitely.
+    gcTime: 5 * 60_000,
+
+    // Optional: prevent automatic requests when switching tabs.
+    refetchOnWindowFocus: false,
   });
 }
