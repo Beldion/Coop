@@ -10,35 +10,17 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import ErrorLabel from "@/components/ui/error";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
+
+import { useAuthLogin } from "@/api/auth";
 
 export default function LoginForm() {
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
+  const userLogin = useAuthLogin();
 
   const [form, setForm] = useState({
     email: "",
     password: "",
-  });
-
-  const loginMutation = useMutation({
-    mutationFn: async () => {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: form.email,
-        password: form.password,
-      });
-
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries(["auth-profile"]);
-
-      navigate("/");
-    },
   });
 
   const handleChange = (e) => {
@@ -50,7 +32,10 @@ export default function LoginForm() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    loginMutation.mutate();
+    userLogin.mutateAsync({
+      email: form.email,
+      password: form.password,
+    });
   };
   return (
     <div className="w-full flex items-center justify-center min-h-screen bg-muted/40 px-4">
@@ -89,16 +74,16 @@ export default function LoginForm() {
                 required
               />
             </div>
-            {loginMutation.isError && (
-              <ErrorLabel message={loginMutation.error.message} />
+            {userLogin.isError && (
+              <ErrorLabel message={userLogin.error.message} />
             )}
             <Button
               type="submit"
-              disabled={loginMutation.isPending}
+              disabled={userLogin.isPending}
               className="w-full"
               size="lg"
             >
-              {loginMutation.isPending ? "Logging in..." : "Login"}
+              {userLogin.isPending ? "Logging in..." : "Login"}
             </Button>
             <div className="flex justify-center align-items">
               <Link

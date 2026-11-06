@@ -125,7 +125,7 @@ export function PaymentsPage() {
               />
             </div>
             <Select value={methodFilter} onValueChange={setMethodFilter}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-[180px] !h-12">
                 <SelectValue placeholder="Filter by method" />
               </SelectTrigger>
               <SelectContent>

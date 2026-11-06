@@ -89,7 +89,7 @@ export function generateDates(
         month: "long",
         day: "numeric",
         year: "numeric",
-      })} - ₱${computedMonthlyPayment()} 
+      })} - ${money(computedMonthlyPayment())} 
         `,
     );
 
@@ -98,4 +98,52 @@ export function generateDates(
   }
   console.log("Generated Dates:", dates);
   return dates;
+}
+
+//Currency formatter
+export const money = (amount) =>
+  new Intl.NumberFormat("en-PH", {
+    style: "currency",
+    currency: "PHP",
+  }).format(amount);
+
+//
+export function exportToCSV(data, filename = "export.csv") {
+  if (!data.length) return;
+
+  const headers = Object.keys(data[0]);
+
+  const csv = [
+    headers.join(","),
+    ...data.map((row) =>
+      headers
+        .map((header) => {
+          const value = row[header];
+
+          if (value === null || value === undefined) return "";
+
+          if (typeof value === "object") {
+            return `"${JSON.stringify(value).replace(/"/g, '""')}"`;
+          }
+
+          return `"${String(value).replace(/"/g, '""')}"`;
+        })
+        .join(","),
+    ),
+  ].join("\n");
+
+  const blob = new Blob([csv], {
+    type: "text/csv;charset=utf-8;",
+  });
+
+  const url = URL.createObjectURL(blob);
+
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  URL.revokeObjectURL(url);
 }

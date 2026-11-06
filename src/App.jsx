@@ -124,7 +124,7 @@ function App() {
             }
           />
           <Route
-            path="/loans/:loanId"
+            path="/loans/:id"
             element={
               <ProtectedRoute>
                 <AppLayout>

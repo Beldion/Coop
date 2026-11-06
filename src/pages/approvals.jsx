@@ -59,6 +59,7 @@ import {
   useRejectAsApprover,
 } from "@/api/approver";
 import { useAuthProfile } from "@/api/users";
+import { Label } from "@/components/ui/label";
 export default function ApprovalsPage() {
   const { data: loans, isLoading, isError } = useFetchLoansAsApprover();
   const {
@@ -76,12 +77,14 @@ export default function ApprovalsPage() {
 
   const handleOpenDialog = (item) => {
     setSelectedLoanType(item);
+
+    console.log("selected loan type", item);
     setSteps([
       {
         step: 1,
-        status: item.coborrower_status,
+        status: item.coborrowers == null ? "approved" : item.coborrower_status,
         date: item.coborrower_status_date,
-        isCompleted: item.coborrower_status == "approved",
+        isCompleted: item.coborrower_status == "approved" || item.coborrowers,
       },
       {
         step: 2,
@@ -118,7 +121,7 @@ export default function ApprovalsPage() {
         loan_type,
       } = selectedLoanType?.type || {};
 
-      console.log("test", term_months);
+      console.log("test", selectedLoanType);
       return generateDates(
         service_fee,
         loan_amount,
@@ -197,8 +200,8 @@ export default function ApprovalsPage() {
                       <TableHead>Loan Name</TableHead>
                       <TableHead>Loan Type</TableHead>
 
-                      <TableHead>Co-borrower status</TableHead>
-                      <TableHead>Co-borrower Approve date</TableHead>
+                      {/* <TableHead>Co-borrower status</TableHead>
+                      <TableHead>Co-borrower Approve date</TableHead> */}
                       <TableHead>Status</TableHead>
 
                       <TableHead className="text-right">Actions</TableHead>
@@ -229,7 +232,7 @@ export default function ApprovalsPage() {
                           </span>
                         </TableCell>
 
-                        <TableCell>
+                        {/* <TableCell>
                           <div className="flex  gap-2">
                             {item?.coborrower_status == "pending" ? (
                               <p className="flex rounded-full px-2.5 py-0.5 text-xs gap-1 bg-yellow-100 text-yellow-700 border-yellow-300">
@@ -247,14 +250,20 @@ export default function ApprovalsPage() {
                               ""
                             )}
                           </div>
-                        </TableCell>
+                        </TableCell> */}
 
-                        <TableCell>
-                          {format(
-                            new Date(item?.coborrower_status_date),
-                            "MMM dd, yyyy",
+                        {/* <TableCell>
+                          {item?.coborrower_status_date ? (
+                            <p className="text-sm text-muted-foreground">
+                              {format(
+                                new Date(item?.coborrower_status_date),
+                                "MMM dd, yyyy",
+                              )}
+                            </p>
+                          ) : (
+                            "N/A"
                           )}
-                        </TableCell>
+                        </TableCell> */}
 
                         <TableCell>
                           <div className="flex  gap-2">
@@ -453,55 +462,64 @@ export default function ApprovalsPage() {
                       {selectedLoanType?.status}
                     </span>
                   </div>
-                  <div className="w-full h-[1px] my-4 bg-gray-200 dark:bg-gray-700"></div>
+                  {selectedLoanType?.coborrowers && (
+                    <>
+                      <div className="w-full h-[1px] my-4 bg-gray-200 dark:bg-gray-700"></div>
 
-                  <CardTitle className="text-xl">
-                    Co-borrowers Information
-                  </CardTitle>
+                      <CardTitle className="text-xl">
+                        Co-borrowers Information
+                      </CardTitle>
 
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground text-lg">Name</span>
-                    <span className="font-medium text-lg">
-                      {selectedLoanType?.member?.first_name}{" "}
-                      {selectedLoanType?.member?.middle_name}{" "}
-                      {selectedLoanType?.member?.last_name}
-                    </span>
-                  </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground text-lg">
+                          Name
+                        </span>
+                        <span className="font-medium text-lg">
+                          {selectedLoanType?.coborrowers?.first_name}{" "}
+                          {selectedLoanType?.coborrowers?.middle_name}{" "}
+                          {selectedLoanType?.coborrowers?.last_name}
+                        </span>
+                      </div>
 
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground text-lg">
-                      Approved / Rejected Date
-                    </span>
-                    <span className="font-medium text-lg">
-                      {selectedLoanType?.coborrower_status_date
-                        ? format(
-                            new Date(selectedLoanType?.coborrower_status_date),
-                            "MM/dd/yyyy",
-                          )
-                        : "N/A"}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground text-lg">
-                      Status
-                    </span>
-                    <span
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        selectedLoanType?.coborrower_status === "approved"
-                          ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"
-                          : selectedLoanType?.coborrower_status === "pending"
-                            ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400"
-                            : selectedLoanType?.coborrower_status === "rejected"
-                              ? "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400"
-                              : "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400"
-                      }`}
-                    >
-                      {selectedLoanType?.coborrower_status}
-                    </span>
-                  </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground text-lg">
+                          Approved / Rejected Date
+                        </span>
+                        <span className="font-medium text-lg">
+                          {selectedLoanType?.coborrower_status_date
+                            ? format(
+                                new Date(
+                                  selectedLoanType?.coborrower_status_date,
+                                ),
+                                "MM/dd/yyyy",
+                              )
+                            : "N/A"}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground text-lg">
+                          Status
+                        </span>
+                        <span
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            selectedLoanType?.coborrower_status === "approved"
+                              ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"
+                              : selectedLoanType?.coborrower_status ===
+                                  "pending"
+                                ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400"
+                                : selectedLoanType?.coborrower_status ===
+                                    "rejected"
+                                  ? "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400"
+                                  : "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400"
+                          }`}
+                        >
+                          {selectedLoanType?.coborrower_status}
+                        </span>
+                      </div>
+                    </>
+                  )}
                 </CardContent>
               </Card>
-
               <Card>
                 <CardHeader>
                   <CardTitle className="text-xl">
@@ -509,27 +527,53 @@ export default function ApprovalsPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {generatedDates && generatedDates.length > 0 && (
-                    <div className="flex flex-col gap-2 text-lg text-muted-foreground">
-                      {generatedDates.length === 1 ? (
-                        <p>{generatedDates[0]}</p>
-                      ) : (
-                        generatedDates
-                          .reduce((acc, curr, i) => {
-                            if (i % 2 === 0) {
-                              const next = generatedDates[i + 1];
-                              acc.push(next ? `${curr}, ${next}` : curr); // fallback if odd
-                            }
-                            return acc;
-                          }, [])
-                          .map((range, index) => (
-                            <p key={index} className="py-0.5">
-                              {range}
-                            </p>
-                          ))
-                      )}
-                    </div>
+                  {selectedLoanType?.type?.special_payment_date?.length > 0 && (
+                    <>
+                      <p className="text-lg font-semibold">Payment Schedule</p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {selectedLoanType?.type?.special_payment_date?.map(
+                          (item) => (
+                            <div
+                              key={item.id}
+                              className="grid grid-cols-2 gap-4 "
+                            >
+                              <div className="space-y-2 ">
+                                <Label className="text-sm">Payment Date</Label>
+                                <p>{item.term_date}</p>
+                              </div>
+                              <div className="space-y-2 ">
+                                <Label className="text-sm">Amount</Label>
+                                <p>₱{item.amount?.toLocaleString()}</p>
+                              </div>
+                            </div>
+                          ),
+                        )}
+                      </div>
+                    </>
                   )}
+                  {!selectedLoanType?.type?.special_payment_date.length > 0 &&
+                    generatedDates &&
+                    generatedDates.length > 0 && (
+                      <div className="flex flex-col gap-2 text-lg text-muted-foreground">
+                        {generatedDates.length === 1 ? (
+                          <p>{generatedDates[0]}</p>
+                        ) : (
+                          generatedDates
+                            .reduce((acc, curr, i) => {
+                              if (i % 2 === 0) {
+                                const next = generatedDates[i + 1];
+                                acc.push(next ? `${curr}, ${next}` : curr); // fallback if odd
+                              }
+                              return acc;
+                            }, [])
+                            .map((range, index) => (
+                              <p key={index} className="py-0.5">
+                                {range}
+                              </p>
+                            ))
+                        )}
+                      </div>
+                    )}
                 </CardContent>
               </Card>
             </div>

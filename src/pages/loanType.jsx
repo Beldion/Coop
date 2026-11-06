@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react";
-import { Link } from "react-router-dom";
+import { useState, useMemo, useEffect } from "react";
+import Decimal from "decimal.js";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,31 +32,97 @@ import { Plus, Search, Eye, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { generateDates } from "@/lib/utils";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
   useAllLoanTypes,
   useArchiveLoanTypes,
   useCreateLoanTypes,
+  useCreateSpecialPaymentDates,
 } from "@/api/loanType";
 
 export function LoanType() {
   const { data: loanTypes, isError, isLoading } = useAllLoanTypes();
   const updateArchive = useArchiveLoanTypes();
   const createLoanType = useCreateLoanTypes();
-
+  const createSpecialPaymentDates = useCreateSpecialPaymentDates();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedLoanType, setSelectedLoanType] = useState(null);
+  const [saveConfirm, setSaveConfirm] = useState(false);
 
-  const [editingLoan, setEditingLoan] = useState(null);
-
-  const [formData, setFormData] = useState({
+  const initialData = {
     loan_type: "",
     loan_name: "",
     loan_amount: "",
     interest_rate: "",
     term_months: "",
     service_fee: "",
-  });
+    // total_payable: "",
+    // special_dates: [],
+  };
+
+  const [formData, setFormData] = useState(initialData);
+
+  useEffect(() => {
+    if (formData.loan_type !== "Special") {
+      setFormData((prev) => ({
+        ...prev,
+        special_dates: [],
+      }));
+      return;
+    }
+
+    const count = Number(formData.term_months);
+
+    const monthlyPayment =
+      (Number(formData.loan_amount) * (Number(formData.interest_rate) / 100) +
+        Number(formData.loan_amount)) /
+      count;
+
+    const newSpecialDates = Array.from({ length: count }, (_, index) => ({
+      index,
+      value: formData.special_dates?.[index]?.value || "",
+      amount: monthlyPayment,
+    }));
+
+    setFormData((prev) => {
+      // Only update if the array actually changed
+      if (
+        JSON.stringify(prev.special_dates) === JSON.stringify(newSpecialDates)
+      ) {
+        return prev; // No change, skip re-render
+      }
+
+      return {
+        ...prev,
+        total_payable: monthlyPayment * count,
+        special_dates: newSpecialDates,
+      };
+    });
+  }, [
+    formData.loan_type,
+    formData.term_months,
+    formData.loan_amount,
+    formData.interest_rate,
+  ]);
+
+  // ✅ Reactive update
+
+  const handleOnChange = (field, value) => {
+    const updatedFormData = { ...formData, [field]: value };
+
+    setFormData(updatedFormData);
+  };
 
   const filteredLoans = useMemo(() => {
     return loanTypes?.filter((loan) => {
@@ -71,33 +137,11 @@ export function LoanType() {
     });
   }, [loanTypes, searchQuery, statusFilter]);
 
-  const handleOpenDialog = (loan) => {
-    if (loan) {
-      setEditingLoan(loan);
-      setFormData({
-        loan_type: loan.loan_type || "",
-        loan_name: loan.loan_name || "",
-        loan_amount: loan.loan_amount.toString(),
-        interest_rate: loan.interest_rate.toString(),
-        term_months: loan.term_months.toString(),
-        service_fee: loan.service_fee.toString(),
-      });
-    } else {
-      setEditingLoan(null);
-      setFormData({
-        loan_type: "",
-        loan_name: "",
-        loan_amount: "",
-        interest_rate: "",
-        term_months: "",
-        service_fee: "",
-      });
-    }
+  const handleOpenDialog = () => {
     setDialogOpen(true);
   };
 
   const handleViewDialog = (item) => {
-    console.log(item);
     setSelectedLoanType({
       loan_id: item.id,
       loan_name: item.loan_name,
@@ -106,12 +150,12 @@ export function LoanType() {
       interest_rate: item.interest_rate,
       service_fee: item.service_fee,
       term_months: item.term_months,
+      special_dates: item?.special_payment_date || [],
     });
   };
 
   const handleCloseDialog = () => {
     setDialogOpen(false);
-    setEditingLoan(null);
   };
 
   const handleSubmit = async (e) => {
@@ -132,11 +176,99 @@ export function LoanType() {
       toast.error(res.error.message || "Failed to create loan");
       return;
     } else {
+      if (res[0].loan_type === "Special") {
+        const payload = formData.special_dates.map((item, index) => ({
+          loan_type: res[0].id, // FK from newly created loan type
+          term_number: index + 1,
+          term_date: item.value,
+          amount: item.amount, // fallback to computed if not set
+        }));
+
+        const resSpecial = await createSpecialPaymentDates.mutateAsync(payload);
+
+        if (resSpecial.error) {
+          toast.error(
+            resSpecial.error.message ||
+              "Failed to create special payment dates",
+          );
+
+          console.log(resSpecial.error);
+          return;
+        }
+      }
       toast.success("Loan created successfully");
     }
     handleCloseDialog();
+    setSaveConfirm(false);
   };
+  const saveConfirmHandler = () => {
+    const toggleErrorBorder = (name, hasError) => {
+      document.querySelectorAll(`[name="${name}"]`).forEach((el) => {
+        el.classList.toggle("border-red-500", hasError);
+      });
+    };
 
+    const isEmpty = (value) => {
+      return !value?.toString().trim();
+    };
+
+    const hasEmptyField = (formData) => {
+      Object.entries(formData).forEach(([key, value]) => {
+        if (key === "special_dates") {
+          value.forEach((item, index) => {
+            const emptyValue = isEmpty(item.value);
+            const emptyAmount = isEmpty(item.amount);
+            toggleErrorBorder(`date-${index}`, emptyValue);
+            toggleErrorBorder(`amount-${index}`, emptyAmount);
+          });
+        } else {
+          const empty = isEmpty(value);
+          toggleErrorBorder(key, empty);
+        }
+      });
+
+      return Object.entries(formData).some(([key, value]) => {
+        if (key === "special_dates") {
+          console.log("special Date", value);
+          return value.some((item) => {
+            const empty = isEmpty(item.value);
+            // console.log("key", key, value);
+            return empty;
+          });
+        }
+
+        const empty = isEmpty(value);
+        return empty;
+      });
+    };
+
+    if (hasEmptyField(formData)) {
+      console.log(
+        "Form data has empty fields:",
+        formData,
+        hasEmptyField(formData),
+      );
+      toast.error("Please fill in all required fields");
+      return;
+    }
+    const total = formData.special_dates.reduce(
+      (acc, item) => acc.plus(new Decimal(item.amount)),
+      new Decimal(0),
+    );
+
+    console.log("Computed total:", formData?.total_payable);
+    if (
+      formData?.total_payable &&
+      formData.loan_type == "Special" &&
+      formData?.total_payable?.toFixed(2) !== total.toFixed(2)
+    ) {
+      toast.error(
+        `${formData.loan_type} "Total payable does not match sum of special payment amounts"}`,
+      );
+      return;
+    }
+    setSaveConfirm(true);
+  };
   const handleDelete = async (loan) => {
     if (
       window.confirm(`Are you sure you want to delete loan ${loan.loan_name}?`)
@@ -151,16 +283,12 @@ export function LoanType() {
     }
   };
 
-  // ✅ Reactive update
-
-  const handleOnChange = (field, value) => {
-    const updatedFormData = { ...formData, [field]: value };
-    setFormData(updatedFormData);
-  };
+  //confirm Handler
 
   const generatedDates = useMemo(() => {
     const { service_fee, loan_amount, interest_rate, term_months, loan_type } =
       selectedLoanType || formData;
+    if (loan_type === "Special") return [];
     return generateDates(
       service_fee,
       loan_amount,
@@ -168,7 +296,22 @@ export function LoanType() {
       term_months,
       loan_type,
     );
-  }, [formData, selectedLoanType]);
+  }, [
+    selectedLoanType,
+    formData.loan_type,
+    formData.service_fee,
+    formData.loan_amount,
+    formData.interest_rate,
+    formData.term_months,
+  ]);
+
+  const getTodayDate = () => {
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    return now.toISOString().split("T")[0];
+  };
+
+  const today = getTodayDate();
 
   if (isLoading) return <p>Loading...</p>;
   if (isError) return <p>Something went wrong</p>;
@@ -274,13 +417,11 @@ export function LoanType() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>
-              {editingLoan ? "Edit Loan" : "Create Loan"}
-            </DialogTitle>
+            <DialogTitle>Create Loan</DialogTitle>
             <DialogDescription>Fill in loan details</DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} id="loan-type-form">
             <div className="space-y-4 py-4">
               <div className="space-y-2">
                 <Label>Loan Type</Label>
@@ -303,6 +444,7 @@ export function LoanType() {
                 <Label>Loan Name</Label>
                 <Input
                   required
+                  name="loan_name"
                   value={formData.loan_name}
                   onChange={(e) => handleOnChange("loan_name", e.target.value)}
                 />
@@ -312,6 +454,7 @@ export function LoanType() {
               <Input
                 type="number"
                 min="0"
+                name="loan_amount"
                 required
                 value={formData.loan_amount}
                 onChange={(e) => handleOnChange("loan_amount", e.target.value)}
@@ -322,6 +465,7 @@ export function LoanType() {
                 type="number"
                 min="0"
                 required
+                name="interest_rate"
                 value={formData.interest_rate}
                 onChange={(e) =>
                   handleOnChange("interest_rate", e.target.value)
@@ -333,6 +477,7 @@ export function LoanType() {
                 type="number"
                 min="0"
                 required
+                name="term_months"
                 value={formData.term_months}
                 onChange={(e) => handleOnChange("term_months", e.target.value)}
               />
@@ -342,6 +487,7 @@ export function LoanType() {
                 type="number"
                 min="0"
                 required
+                name="service_fee"
                 value={formData.service_fee}
                 onChange={(e) => handleOnChange("service_fee", e.target.value)}
               />
@@ -366,15 +512,75 @@ export function LoanType() {
                   )}
                 </div>
               )}
+              {/* Special Dates */}
+              {formData?.special_dates?.length > 0 && (
+                <>
+                  <p className="text-lg font-semibold">Payment Schedule</p>
+                  <p className="text-lg font-semibold">
+                    total payable = ₱{formData.total_payable?.toLocaleString()}
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {formData?.special_dates?.map((item, index) => (
+                      <div
+                        key={`item-${index}`}
+                        className="grid grid-cols-2 gap-4 "
+                      >
+                        <div className="space-y-2 ">
+                          <Label className="text-sm">
+                            Term {item.index + 1} - Payment Date
+                          </Label>
+
+                          <Input
+                            type="date"
+                            value={item.value}
+                            min={today}
+                            name={`date-${index}`}
+                            onChange={(e) => {
+                              setFormData((prev) => ({
+                                ...prev,
+                                special_dates: prev.special_dates.map(
+                                  (date, i) =>
+                                    i === index
+                                      ? { ...date, value: e.target.value }
+                                      : date,
+                                ),
+                              }));
+                            }}
+                          />
+                        </div>
+
+                        <div key={item.index} className="space-y-2 ">
+                          <Label className="text-sm">Amount</Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            name={`amount-${index}`}
+                            value={item.amount}
+                            onChange={(e) => {
+                              setFormData((prev) => ({
+                                ...prev,
+                                special_dates: prev.special_dates.map(
+                                  (date, i) =>
+                                    i === index
+                                      ? { ...date, amount: e.target.value }
+                                      : date,
+                                ),
+                              }));
+                            }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
 
             <DialogFooter>
               <Button variant="outline" onClick={handleCloseDialog}>
                 Cancel
               </Button>
-              <Button disabled={createLoanType.isPending} type="submit">
-                {createLoanType.isPending ? "Creating Loan" : "Create Loan"}
-              </Button>
+              <Button onClick={() => saveConfirmHandler()}>Create Loan</Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -383,9 +589,7 @@ export function LoanType() {
       <Dialog open={selectedLoanType} onOpenChange={setSelectedLoanType}>
         <DialogContent className="max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-3xl">
-              Are you sure you want to apply for this loan?{" "}
-            </DialogTitle>
+            <DialogTitle className="text-3xl">Loan Type Details? </DialogTitle>
           </DialogHeader>
 
           <div className="flex gap-4 flex-col">
@@ -404,11 +608,28 @@ export function LoanType() {
             <p className="text-lg pb-2 border-b boder-muted-foreground">
               Service Fee: {selectedLoanType?.service_fee}%
             </p>
-            <div className="space-y-4">
-              <Label htmlFor="search" className="text-sm">
-                Search for co-borrower (optional)
-              </Label>
-            </div>
+
+            {selectedLoanType?.special_dates?.length > 0 && (
+              <>
+                <p className="text-lg font-semibold">Payment Schedule</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {selectedLoanType?.special_dates?.map((item) => (
+                    <div key={item.id} className="grid grid-cols-2 gap-4 ">
+                      <div className="space-y-2 ">
+                        <Label className="text-sm">
+                          Term {item.term_number} - Payment Date
+                        </Label>
+                        <p>{item.term_date}</p>
+                      </div>
+                      <div className="space-y-2 ">
+                        <Label className="text-sm">Amount</Label>
+                        <p>₱{item.amount?.toLocaleString()}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
             {generatedDates && generatedDates.length > 0 && (
               <div className="text-sm text-muted-foreground">
                 <p className="mb-2 text-md">Sample Computations:</p>
@@ -435,6 +656,29 @@ export function LoanType() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={saveConfirm} onOpenChange={setSaveConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Save?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to save these changes?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <AlertDialogFooter>
+            <AlertDialogAction
+              disabled={createLoanType.isPending}
+              type="submit"
+              form="loan-type-form"
+              className="grey:bg-green-600 bg-green-500 hover:bg-green-600 focus:ring-green-600"
+            >
+              {createLoanType.isPending ? "Applying..." : "Yes"}
+            </AlertDialogAction>
+            <AlertDialogCancel>No</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
