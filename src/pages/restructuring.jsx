@@ -26,6 +26,7 @@ import { format } from "date-fns";
 import { Search, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { useFetchAllLoans } from "@/api/loans";
+import { money } from "@/lib/utils";
 import LoanSummary from "@/components/restructuring/loanSummary";
 
 export default function Restructuring() {
@@ -268,6 +269,9 @@ export default function Restructuring() {
                           <TableRow>
                             <TableHead className="font-bold">Amount</TableHead>
                             <TableHead className="font-bold">
+                              Amount paid
+                            </TableHead>
+                            <TableHead className="font-bold">
                               Payment Method
                             </TableHead>
                             <TableHead className="font-bold">
@@ -286,7 +290,10 @@ export default function Restructuring() {
                           {selectedLoan?.loan_payments.map((payment) => (
                             <TableRow key={payment.id}>
                               <TableCell className="text-xl font-medium">
-                                {payment.amount.toLocaleString()}
+                                {money(payment?.amount)}
+                              </TableCell>
+                              <TableCell className="text-xl font-medium">
+                                {money(payment?.amount_paid)}
                               </TableCell>
                               <TableCell>
                                 <span className="capitalize">
@@ -299,13 +306,7 @@ export default function Restructuring() {
                                 </span>
                               </TableCell>
 
-                              <TableCell>
-                                {payment?.paid_date &&
-                                  format(
-                                    new Date(payment?.paid_date),
-                                    "MMM dd, yyyy",
-                                  )}
-                              </TableCell>
+                              <TableCell>{payment?.paid_date}</TableCell>
                               <TableCell>
                                 {format(
                                   new Date(payment?.payment_date),

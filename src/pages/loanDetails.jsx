@@ -19,6 +19,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { money } from "@/lib/utils";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -155,7 +157,7 @@ export function LoanDetailsPage() {
             <div className="flex justify-between">
               <span className="text-muted-foreground">Loan Amount</span>
               <span className="font-medium">
-                ₱{loan?.loan_type?.loan_amount.toLocaleString()}
+                {money(loan?.loan_type?.loan_amount)}
               </span>
             </div>
             <div className="flex justify-between">
@@ -239,18 +241,17 @@ export function LoanDetailsPage() {
             <div className="flex justify-between">
               <span className="text-muted-foreground">Principal Amount</span>
               <span className="font-medium">
-                ₱{loan?.loan_type?.loan_amount.toLocaleString()}
+                {money(loan?.loan_type?.loan_amount)}
               </span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Interest Amount</span>
               <span className="font-medium">
-                ₱
-                {(
+                {money(
                   (loan?.loan_type?.loan_amount *
                     loan?.loan_type?.interest_rate) /
-                  100
-                ).toLocaleString()}
+                    100,
+                )}
               </span>
             </div>
             {/*             
@@ -308,8 +309,9 @@ export function LoanDetailsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="font-bold">Loan ID</TableHead>
                     <TableHead className="font-bold">Amount</TableHead>
+                    <TableHead className="font-bold">Amount paid</TableHead>
+
                     <TableHead className="font-bold">Payment Method</TableHead>
                     <TableHead className="font-bold">
                       Payment Reference
@@ -322,9 +324,11 @@ export function LoanDetailsPage() {
                 <TableBody>
                   {loan?.loan_payments.map((payment) => (
                     <TableRow key={payment.id}>
-                      <TableCell className="">{payment.id}</TableCell>
                       <TableCell className="text-xl font-medium">
-                        {payment.amount.toLocaleString()}
+                        {money(payment?.amount)}
+                      </TableCell>
+                      <TableCell className="text-xl font-medium">
+                        {money(payment?.amount_paid)}
                       </TableCell>
                       <TableCell>
                         <span className="capitalize">
