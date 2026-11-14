@@ -1,5 +1,23 @@
 # React + Vite
 
+## Supabase Realtime
+
+Run `supabase/enable-realtime.sql` in the SQL Editor of the project specified by
+`VITE_SUPABASE_URL`. The five application tables must be in the `supabase_realtime`
+publication. Existing SELECT grants and row-level security determine which changes
+each signed-in user can receive; this script does not broaden access.
+
+Authenticated routes share a subscription for users, loans, loan payments, loan
+types and special payment dates. Events refresh the affected React Query caches,
+including joined data and filtered/paginated reports. Bursts are batched, reconnects
+refresh cached data, and leaving authenticated routes removes the channel.
+Legacy local Zustand payment/ledger data is not synchronized by this integration.
+
+To verify, open two authenticated browser sessions, edit a visible user or approve
+a loan in one, and confirm the other updates without reloading. Also check reports
+after a payment change and reconnect a temporarily offline tab. Use records both
+sessions are permitted to read. See the [Supabase Postgres Changes documentation](https://supabase.com/docs/guides/realtime/postgres-changes).
+
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:

@@ -16,6 +16,7 @@ import {
   BarChart3,
   ClipboardList,
   Files,
+  Building2,
 } from "lucide-react";
 
 const navigation = [
@@ -28,7 +29,7 @@ const navigation = [
   {
     name: "Co-Borrowers",
     href: "/coborrowers",
-    icon: LayoutDashboard,
+    icon: Users,
     role: "member",
   },
 
@@ -42,7 +43,7 @@ const navigation = [
     name: "Reports",
     href: "/reports",
     icon: BarChart3,
-    role: "admin",
+    role: ["admin", "approver-2"],
   },
   {
     name: "Restructuring",
@@ -51,22 +52,21 @@ const navigation = [
     role: "admin",
   },
   {
-    name: "Approvals",
+    name: "Loan Applications",
     href: "/approvals",
     icon: Files,
     role: "approver",
   },
+  // {
+  //   name: "Payments",
+  //   href: "/payments",
+  //   icon: Wallet,
+  //   role: ["admin", "approver-2"],
+  // },
 
   {
     name: "Loan Types",
     href: "/loans/types",
-    icon: CreditCard,
-    role: "admin",
-  },
-
-  {
-    name: "Payments",
-    href: "/payments",
     icon: CreditCard,
     role: "admin",
   },
@@ -84,7 +84,7 @@ export function AppLayout({ children }) {
 
   const { data, isLoading, isError } = useAuthProfile();
 
-  console.log("user", data);
+  console.log("user 11212", data);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const logoutMutation = useMutation({
@@ -105,7 +105,7 @@ export function AppLayout({ children }) {
 
   if (!data?.profile) return <p>No user found.</p>;
   return (
-    <div className="w-full lg:pl-[16rem] min-h-screen bg-background">
+    <div className="w-full lg:pl-[18rem] min-h-screen bg-background">
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
         <div
@@ -116,18 +116,37 @@ export function AppLayout({ children }) {
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-0 left-0 z-40 h-screen w-64 bg-card border-r border-border transition-transform lg:translate-x-0 ${
+        id="app-sidebar"
+        aria-label="Main sidebar"
+        className={`fixed top-0 left-0 z-40 h-dvh w-[18rem] bg-card border-r border-slate-200/70 transition-transform dark:border-slate-800 lg:translate-x-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         <div className="flex flex-col h-full">
           {/* Logo */}
-          <div className="flex items-center justify-between h-16 px-6 border-b border-border">
-            <h1 className="text-xl font-bold text-primary">Coop Lending</h1>
+          <div className="mx-4 flex min-h-20 items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800">
+            <Link
+              to="/"
+              onClick={() => setSidebarOpen(false)}
+              className="flex min-w-0 items-center gap-2.5"
+            >
+              <span className="flex size-13 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-slate-600 to-slate-950 text-white shadow-sm">
+                <Building2 className="size-8" aria-hidden="true" />
+              </span>
+              <div className="min-w-0">
+                <p className="text-lg font-semibold tracking-tight">
+                  Coop Lending
+                </p>
+                <p className="mt-0.5 text-sm text-slate-400">
+                  Member Financial Portal
+                </p>
+              </div>
+            </Link>
             <Button
               variant="ghost"
               size="icon"
-              className="lg:hidden"
+              className="size-6 shrink-0 text-slate-400 lg:hidden"
+              aria-label="Close navigation"
               onClick={() => setSidebarOpen(false)}
             >
               <X className="h-5 w-5" />
@@ -135,13 +154,22 @@ export function AppLayout({ children }) {
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 px-4 py-6 space-y-1">
+          <nav
+            aria-label="Main navigation"
+            className="min-h-0 flex-1 overflow-y-auto px-4 py-5 space-y-1.5"
+          >
             {navigation.map((item) => {
-              const isActive = location.pathname === item.href;
+              const isActive =
+                location.pathname === item.href ||
+                (item.href !== "/" &&
+                  location.pathname.startsWith(`${item.href}/`));
 
               if (
                 (data?.profile?.role == "member" && item.role == "member") ||
-                (data?.profile?.role == "admin" && item.role == "admin") ||
+                (data?.profile?.role == "admin" &&
+                  item.role.includes("admin")) ||
+                (data?.profile?.role == "approver-2" &&
+                  item.role.includes("approver-2")) ||
                 (data?.profile?.role != "member" && item.role == "approver") ||
                 item.role == "all"
               )
@@ -149,14 +177,18 @@ export function AppLayout({ children }) {
                   <Link
                     key={item.name}
                     to={item.href}
-                    className={`flex items-center gap-3 px-3 py-2 rounded-lg text-md font-medium transition-colors ${
+                    aria-current={isActive ? "page" : undefined}
+                    className={`flex min-h-9 items-center gap-3 px-3 py-2 rounded-sm text-md font-medium transition-colors ${
                       isActive
-                        ? "bg-primary text-primary-foreground"
-                        : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                        ? "bg-slate-900 text-white shadow-sm dark:bg-slate-100 dark:text-slate-950"
+                        : "text-slate-600 hover:bg-slate-50 hover:text-slate-950 dark:text-slate-400 dark:hover:bg-slate-900 dark:hover:text-slate-100"
                     }`}
                     onClick={() => setSidebarOpen(false)}
                   >
-                    <item.icon className="h-5 w-5" />
+                    <item.icon
+                      aria-hidden="true"
+                      className={`size-5 shrink-0 ${isActive ? "" : "text-slate-400"}`}
+                    />
                     {item.name}
                   </Link>
                 );
@@ -164,34 +196,49 @@ export function AppLayout({ children }) {
           </nav>
 
           {/* User section */}
-          <div className="p-4 border-t border-border">
-            <Link to="/profile">
-              <div className="flex items-center gap-3 mb-4 p-3 rounded-sm hover:bg-gray-200">
-                <div className="flex-shrink-0 w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                  <span className="text-sm font-medium text-primary">
-                    {data?.profile?.first_name &&
-                      data?.profile?.first_name.charAt(0).toUpperCase()}
+          <div className="shrink-0 space-y-2 border-t border-slate-100 p-3 dark:border-slate-800">
+            <Link
+              to="/profile"
+              onClick={() => setSidebarOpen(false)}
+              className="block rounded-xl border border-slate-200/70 shadow-sm transition-colors hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-900"
+            >
+              <div className="flex items-center gap-2.5 p-2">
+                <div className="flex-shrink-0 size-10 bg-slate-200 rounded-full flex items-center justify-center dark:bg-slate-800">
+                  <span className="text-md font-medium text-slate-600 dark:text-slate-300">
+                    {(
+                      data.profile.first_name ||
+                      data.profile.name ||
+                      data.profile.email ||
+                      "U"
+                    )
+                      .charAt(0)
+                      .toUpperCase()}
                   </span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-lg font-medium truncate">
-                    {data?.profile?.name}
+                  <p
+                    className="text-sm font-medium truncate"
+                    title={data.profile.email}
+                  >
+                    {data.profile.email ||
+                      data.profile.name ||
+                      data.profile.first_name}
                   </p>
-                  <p className="text-md text-muted-foreground truncate">
-                    {data?.profile?.email}
+                  <p className="mt-1 inline-block max-w-full truncate rounded bg-emerald-50 px-1.5 py-0.5 text-sm capitalize text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400">
+                    {data.profile.role?.replaceAll("-", " ") || "Account"}
                   </p>
                 </div>
               </div>
             </Link>
             <Button
               variant="outline"
-              size="sm"
-              className="w-full"
+              size="lg"
+              className="h-10 w-full rounded-lg border-slate-200/70 bg-slate-50/50 text-md font-normal text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400"
               onClick={() => logoutMutation.mutate()}
               disabled={logoutMutation.isPending}
             >
-              <LogOut className="h-4 w-4 mr-2" />
-              {logoutMutation.isPending ? "Logging out..." : "Logout"}
+              <LogOut className="size-3" />
+              {logoutMutation.isPending ? "Logging out..." : "Logout Account"}
             </Button>
           </div>
         </div>
@@ -205,6 +252,9 @@ export function AppLayout({ children }) {
             variant="ghost"
             size="icon"
             className="lg:hidden"
+            aria-label="Open navigation"
+            aria-expanded={sidebarOpen}
+            aria-controls="app-sidebar"
             onClick={() => setSidebarOpen(true)}
           >
             <Menu className="h-5 w-5" />

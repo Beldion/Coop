@@ -1,0 +1,20 @@
+import { DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { money } from "@/lib/utils";
+import { UserRound, CalendarDays } from "lucide-react";
+
+export default function CoborrowerDetails({ loan, dates }) {
+  if (!loan) return null;
+  const special = loan.special_dates || [];
+  const schedule = special.length ? special.map((item) => [item.term_date, money(item.amount)]) : loan.loan_type !== "Special" && Array.isArray(dates) ? dates.map((item) => String(item).split(" - ")) : [];
+  const statusColor = loan.coborrower_status === "approved" ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950" : loan.coborrower_status === "rejected" ? "bg-rose-50 text-rose-600 dark:bg-rose-950" : "bg-amber-50 text-amber-700 dark:bg-amber-950";
+  return <>
+    <DialogHeader className="border-b px-6 py-5 pr-12"><p className="text-[10px] font-semibold uppercase tracking-wider text-emerald-600">Co-borrower request</p><div className="flex flex-wrap items-center gap-2"><DialogTitle className="text-xl font-semibold tracking-tight">{loan.loan_name || "Loan Application"}</DialogTitle><span className={`rounded-full px-2 py-0.5 text-[10px] capitalize ${statusColor}`}>{loan.coborrower_status || "Unknown"}</span></div><DialogDescription className="text-xs">Review the borrower’s loan details and payment schedule before responding.</DialogDescription></DialogHeader>
+    <div className="space-y-5 p-6">
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-emerald-100 bg-emerald-50/60 p-4 dark:border-emerald-900 dark:bg-emerald-950/30"><div><p className="text-[10px] uppercase tracking-wide text-emerald-700 dark:text-emerald-400">Loan principal</p><p className="mt-1 text-2xl font-bold tabular-nums">{money(Number(loan.loan_amount) || 0)}</p></div><div className="text-right"><p className="text-xs font-medium">{loan.loan_type}</p><p className="mt-1 break-all text-[10px] text-slate-400">Ref: {loan.loan_id}</p></div></div>
+      <div className="grid gap-4 md:grid-cols-2">
+        <section className="rounded-xl border p-4"><h3 className="mb-2 flex items-center gap-2 border-b pb-3 text-xs font-semibold"><UserRound className="size-4 text-emerald-600" />Borrower &amp; Loan Information</h3><dl className="divide-y divide-slate-100 dark:divide-slate-800">{[["Borrower", loan.name], ["Interest Rate", `${loan.interest_rate ?? 0}%`], ["Service Fee", `${loan.service_fee ?? 0}%`], ["Term", loan.term_months], ["Applied", loan.apply_date], ["Loan Status", loan.loan_status], ["Your Response", loan.coborrower_status]].map(([label, value]) => <div key={label} className="flex justify-between gap-3 py-3 text-xs"><dt className="text-slate-500">{label}</dt><dd className="max-w-[60%] break-words text-right font-medium">{value || "N/A"}</dd></div>)}</dl></section>
+        <section className="min-w-0 overflow-hidden rounded-xl border"><div className="border-b p-4"><h3 className="flex items-center gap-2 text-xs font-semibold"><CalendarDays className="size-4 text-blue-500" />{special.length ? "Payment Schedule" : "Sample Payment Computation"}</h3><p className="mt-1 text-[10px] text-slate-400">{schedule.length} scheduled installments</p></div><div className="max-h-80 overflow-auto"><table className="w-full text-[11px]"><thead className="sticky top-0 bg-slate-50 text-[9px] uppercase text-slate-400 dark:bg-slate-900"><tr><th className="p-3 text-left">#</th><th className="p-3 text-left">Due date</th><th className="p-3 text-right">Amount</th></tr></thead><tbody>{schedule.map(([date, amount], index) => <tr key={index} className="border-t border-slate-100 dark:border-slate-800"><td className="p-3 text-slate-400">{String(index + 1).padStart(2, "0")}</td><td className="p-3">{date}</td><td className="whitespace-nowrap p-3 text-right font-semibold tabular-nums">{amount}</td></tr>)}</tbody></table>{!schedule.length && <p className="p-6 text-center text-xs text-muted-foreground">No payment schedule available.</p>}</div></section>
+      </div>
+    </div>
+  </>;
+}

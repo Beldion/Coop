@@ -2,10 +2,12 @@ import { useEffect, useState } from "react";
 import { Navigate, Outlet } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useQueryClient } from "@tanstack/react-query";
+import { useRealtime } from "../hooks/useRealtime";
 export default function ProtectedRoute({ children }) {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
   const queryClient = useQueryClient();
+  useRealtime(session?.user?.id);
 
   useEffect(() => {
     // initial session
