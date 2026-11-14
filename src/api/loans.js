@@ -6,6 +6,34 @@ import {
 } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 
+// Fetch every loan visible to the signed-in user under existing RLS policies.
+export function useLoanDirectory() {
+  return useQuery({
+    queryKey: ["loans", "directory"],
+    queryFn: async ({ signal }) => {
+      const loans = [];
+      let offset = 0;
+      while (true) {
+        const { data, error } = await supabase
+          .from("loans")
+          .select(
+            `id, created_at, status, member:member_id(first_name, middle_name, last_name, employee_id), type:loan_type_id(loan_name, loan_type, loan_amount, interest_rate, term_months, service_fee)`,
+          )
+          .order("created_at", { ascending: false })
+          .order("id", { ascending: false })
+          .range(offset, offset + 499)
+          .abortSignal(signal);
+        if (error) throw error;
+        if (!data?.length) break;
+        loans.push(...data);
+        offset += data.length;
+      }
+      return loans;
+    },
+    staleTime: 30_000,
+  });
+}
+
 export function useUserLoanTypes() {
   const queryClient = useQueryClient();
   return useQuery({
@@ -160,7 +188,6 @@ export function useFetchSingleLoan(loanId) {
             loan_payments (*)
         `,
         )
-        .eq("member_id", user.id)
         .eq("id", loanId)
         .single();
       if (error) throw error;
@@ -235,42 +262,7 @@ export function useRestructureLoan() {
   });
 }
 
-//reports
-
-// export function useLoans(page = 1) {
-//   return useQuery({
-//     queryKey: ["reports", page],
-//     queryFn: async () => {
-//       const from = (page - 1) * PAGE_SIZE;
-//       const to = from + PAGE_SIZE - 1;
-
-//       const { data, error, count } = await supabase
-//         .from("loan_payments")
-//         .select(
-//           `
-//           *,
-//           // member:member_id (*),
-//           // coborrower:coborrower_id (*),
-//           // loan_type:loan_type_id (*),
-//           loans (*)
-//         `,
-//           { count: "exact" },
-//         )
-//         .order("created_at", { ascending: false })
-//         .range(from, to);
-
-//       if (error) throw error;
-
-//       return {
-//         loans: data || [],
-//         total: count || 0,
-//         totalPages: Math.ceil((count || 0) / PAGE_SIZE),
-//       };
-//     },
-//     keepPreviousData: true,
-//   });
-// }
-
+// fetch loans for reports
 export function useLoans({
   page,
   pageSize,
@@ -334,4 +326,24 @@ export function useLoans({
     // Optional: prevent automatic requests when switching tabs.
     refetchOnWindowFocus: false,
   });
+}
+
+//add payments
+
+export function useRecordLoanPayment() {
+  const recordPayment = useMutation({
+    mutationFn: async ({ installmentId, method, reference, amount }) => {
+      const { data, error } = await supabase.rpc("record_loan_payment", {
+        p_installment_id: installmentId,
+        p_payment_method: method,
+        p_reference: reference,
+        p_amount_paid: amount,
+      });
+
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  return { recordPayment };
 }

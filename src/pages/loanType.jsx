@@ -1,3 +1,6 @@
+import LoanCatalog from "@/components/loanCatalog";
+import CreateLoanForm from "@/components/createLoanForm";
+import LoanPackageDetails from "@/components/loanPackageDetails";
 import { useState, useMemo, useEffect } from "react";
 import Decimal from "decimal.js";
 
@@ -30,7 +33,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Search, Eye, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { generateDates } from "@/lib/utils";
+import { generateDates, money } from "@/lib/utils";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -57,7 +60,13 @@ export function LoanType() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [selectedLoanType, setSelectedLoanType] = useState(null);
+  const [selectedLoanTypeId, setSelectedLoanTypeId] = useState(null);
+  const selectedLoanType = useMemo(() => {
+    const loan = loanTypes?.find((item) => item.id === selectedLoanTypeId);
+    return loan
+      ? { ...loan, loan_id: loan.id, special_dates: loan.special_payment_date || [] }
+      : null;
+  }, [loanTypes, selectedLoanTypeId]);
   const [saveConfirm, setSaveConfirm] = useState(false);
 
   const initialData = {
@@ -142,16 +151,7 @@ export function LoanType() {
   };
 
   const handleViewDialog = (item) => {
-    setSelectedLoanType({
-      loan_id: item.id,
-      loan_name: item.loan_name,
-      loan_type: item.loan_type,
-      loan_amount: item.loan_amount,
-      interest_rate: item.interest_rate,
-      service_fee: item.service_fee,
-      term_months: item.term_months,
-      special_dates: item?.special_payment_date || [],
-    });
+    setSelectedLoanTypeId(item.id);
   };
 
   const handleCloseDialog = () => {
@@ -322,338 +322,31 @@ export function LoanType() {
         <div>
           <h1 className="text-3xl font-bold">Loans</h1>
           <p className="text-muted-foreground mt-1">
-            Manage loan applications and disbursements
+            Manage loan packages, interest terms, service fees, and disbursements
           </p>
         </div>
-        <Button onClick={() => handleOpenDialog()}>
+        <Button className="rounded-lg bg-slate-900 text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900" onClick={() => handleOpenDialog()}>
           <Plus className="h-4 w-4 mr-2" />
           Create Loan
         </Button>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>All Loans</CardTitle>
-
-          <div className="flex items-center gap-2 mt-4">
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                required
-                placeholder="Search by loan ID or name..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
-              />
-            </div>
-          </div>
-        </CardHeader>
-
-        <CardContent>
-          {filteredLoans?.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">
-                {searchQuery || statusFilter !== "all"
-                  ? "No loans found"
-                  : "No loans yet"}
-              </p>
-            </div>
-          ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Interest</TableHead>
-                    <TableHead>Term</TableHead>
-                    <TableHead>Service fee</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-
-                <TableBody>
-                  {filteredLoans?.map((loan) => (
-                    <TableRow key={loan.id}>
-                      <TableCell>{loan.loan_name}</TableCell>
-                      <TableCell>{loan.loan_type}</TableCell>
-                      <TableCell>
-                        ₱{loan.loan_amount.toLocaleString()}
-                      </TableCell>
-                      <TableCell>{loan.interest_rate}%</TableCell>
-                      <TableCell>{loan.term_months} months</TableCell>
-                      <TableCell>{loan.service_fee}%</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            disabled={updateArchive.isPending}
-                            onClick={() => handleViewDialog(loan)}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            disabled={updateArchive.isPending}
-                            onClick={() => handleDelete(loan)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <LoanCatalog loans={loanTypes} onView={handleViewDialog} onDelete={handleDelete} pending={updateArchive.isPending} />
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Create Loan</DialogTitle>
-            <DialogDescription>Fill in loan details</DialogDescription>
-          </DialogHeader>
-
-          <form onSubmit={handleSubmit} id="loan-type-form">
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label>Loan Type</Label>
-                <Select
-                  value={formData.loan_type}
-                  onValueChange={(value) => handleOnChange("loan_type", value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select loan type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Member">Member </SelectItem>
-                    <SelectItem value="Associate">Associate</SelectItem>
-                    <SelectItem value="Special">Special</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Loan Name</Label>
-                <Input
-                  required
-                  name="loan_name"
-                  value={formData.loan_name}
-                  onChange={(e) => handleOnChange("loan_name", e.target.value)}
-                />
-              </div>
-
-              <Label>Loan Amount</Label>
-              <Input
-                type="number"
-                min="0"
-                name="loan_amount"
-                required
-                value={formData.loan_amount}
-                onChange={(e) => handleOnChange("loan_amount", e.target.value)}
-              />
-
-              <Label>Interest</Label>
-              <Input
-                type="number"
-                min="0"
-                required
-                name="interest_rate"
-                value={formData.interest_rate}
-                onChange={(e) =>
-                  handleOnChange("interest_rate", e.target.value)
-                }
-              />
-
-              <Label>Terms</Label>
-              <Input
-                type="number"
-                min="0"
-                required
-                name="term_months"
-                value={formData.term_months}
-                onChange={(e) => handleOnChange("term_months", e.target.value)}
-              />
-
-              <Label>Service Fee %</Label>
-              <Input
-                type="number"
-                min="0"
-                required
-                name="service_fee"
-                value={formData.service_fee}
-                onChange={(e) => handleOnChange("service_fee", e.target.value)}
-              />
-
-              {/* ✅ Payment Dates */}
-              {generatedDates.length > 0 && (
-                <div className="text-sm text-muted-foreground">
-                  <p>Sample Computations:</p>
-
-                  {generatedDates.length === 1 ? (
-                    <p>{generatedDates[0]}</p>
-                  ) : (
-                    generatedDates
-                      .reduce((acc, curr, i) => {
-                        if (i % 2 === 0) {
-                          const next = generatedDates[i + 1];
-                          acc.push(next ? `${curr} - ${next}` : curr); // fallback if odd
-                        }
-                        return acc;
-                      }, [])
-                      .map((range, index) => <p key={index}>{range}</p>)
-                  )}
-                </div>
-              )}
-              {/* Special Dates */}
-              {formData?.special_dates?.length > 0 && (
-                <>
-                  <p className="text-lg font-semibold">Payment Schedule</p>
-                  <p className="text-lg font-semibold">
-                    total payable = ₱{formData.total_payable?.toLocaleString()}
-                  </p>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {formData?.special_dates?.map((item, index) => (
-                      <div
-                        key={`item-${index}`}
-                        className="grid grid-cols-2 gap-4 "
-                      >
-                        <div className="space-y-2 ">
-                          <Label className="text-sm">
-                            Term {item.index + 1} - Payment Date
-                          </Label>
-
-                          <Input
-                            type="date"
-                            value={item.value}
-                            min={today}
-                            name={`date-${index}`}
-                            onChange={(e) => {
-                              setFormData((prev) => ({
-                                ...prev,
-                                special_dates: prev.special_dates.map(
-                                  (date, i) =>
-                                    i === index
-                                      ? { ...date, value: e.target.value }
-                                      : date,
-                                ),
-                              }));
-                            }}
-                          />
-                        </div>
-
-                        <div key={item.index} className="space-y-2 ">
-                          <Label className="text-sm">Amount</Label>
-                          <Input
-                            type="number"
-                            min="0"
-                            name={`amount-${index}`}
-                            value={item.amount}
-                            onChange={(e) => {
-                              setFormData((prev) => ({
-                                ...prev,
-                                special_dates: prev.special_dates.map(
-                                  (date, i) =>
-                                    i === index
-                                      ? { ...date, amount: e.target.value }
-                                      : date,
-                                ),
-                              }));
-                            }}
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
-
-            <DialogFooter>
-              <Button variant="outline" onClick={handleCloseDialog}>
-                Cancel
-              </Button>
-              <Button onClick={() => saveConfirmHandler()}>Create Loan</Button>
-            </DialogFooter>
-          </form>
+        <DialogContent className="flex max-h-[92dvh] flex-col gap-0 overflow-hidden rounded-2xl p-0 md:max-w-2xl">
+          <CreateLoanForm data={formData} onChange={handleOnChange} setData={setFormData} dates={generatedDates} today={today} onSubmit={handleSubmit} onConfirm={saveConfirmHandler} onCancel={handleCloseDialog} pending={createLoanType.isPending || createSpecialPaymentDates.isPending} />
         </DialogContent>
       </Dialog>
 
-      <Dialog open={selectedLoanType} onOpenChange={setSelectedLoanType}>
-        <DialogContent className="max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-3xl">Loan Type Details? </DialogTitle>
-          </DialogHeader>
-
-          <div className="flex gap-4 flex-col">
-            <p className="text-lg pb-2 border-b boder-muted-foreground">
-              Loan Name: {selectedLoanType?.loan_name}
-            </p>
-            <p className="text-lg pb-2 border-b boder-muted-foreground">
-              Loan Type: {selectedLoanType?.loan_type}
-            </p>
-            <p className="text-lg pb-2 border-b boder-muted-foreground">
-              Loan Amount: ₱{selectedLoanType?.loan_amount?.toLocaleString()}
-            </p>
-            <p className="text-lg pb-2 border-b boder-muted-foreground ">
-              Loan Interest: {selectedLoanType?.interest_rate}%
-            </p>
-            <p className="text-lg pb-2 border-b boder-muted-foreground">
-              Service Fee: {selectedLoanType?.service_fee}%
-            </p>
-
-            {selectedLoanType?.special_dates?.length > 0 && (
-              <>
-                <p className="text-lg font-semibold">Payment Schedule</p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {selectedLoanType?.special_dates?.map((item) => (
-                    <div key={item.id} className="grid grid-cols-2 gap-4 ">
-                      <div className="space-y-2 ">
-                        <Label className="text-sm">
-                          Term {item.term_number} - Payment Date
-                        </Label>
-                        <p>{item.term_date}</p>
-                      </div>
-                      <div className="space-y-2 ">
-                        <Label className="text-sm">Amount</Label>
-                        <p>₱{item.amount?.toLocaleString()}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
-            {generatedDates && generatedDates.length > 0 && (
-              <div className="text-sm text-muted-foreground">
-                <p className="mb-2 text-md">Sample Computations:</p>
-
-                {generatedDates.length === 1 ? (
-                  <p>{generatedDates[0]}</p>
-                ) : (
-                  generatedDates
-                    .reduce((acc, curr, i) => {
-                      if (i % 2 === 0) {
-                        const next = generatedDates[i + 1];
-                        acc.push(next ? `${curr}, ${next}` : curr); // fallback if odd
-                      }
-                      return acc;
-                    }, [])
-                    .map((range, index) => (
-                      <p key={index} className="py-0.5">
-                        {range}
-                      </p>
-                    ))
-                )}
-              </div>
-            )}
-          </div>
+      <Dialog
+        open={Boolean(selectedLoanType)}
+        onOpenChange={(open) => {
+          if (!open) setSelectedLoanTypeId(null);
+        }}
+      >
+        <DialogContent className="max-h-[94dvh] overflow-y-auto gap-0 rounded-2xl p-0 md:max-w-5xl">
+          <LoanPackageDetails loan={selectedLoanType} generatedDates={generatedDates} onClose={() => setSelectedLoanTypeId(null)} />
         </DialogContent>
       </Dialog>
 
