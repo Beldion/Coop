@@ -1,4 +1,6 @@
-import React, { useMemo, useState } from "react";
+import { ApplyLoanSummary, ApplyLoanSchedule } from "@/components/applyLoanSummary";
+import DashboardOverview from "@/components/dashboardOverview";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -57,7 +59,11 @@ export default function Dashboard() {
   const createLoanPayment = useCreateLoanPayments();
   const { data, isError, isLoading } = useUserLoanTypes();
 
-  const { data: loans } = useUserLoans();
+  const {
+    data: loans,
+    isLoading: loansLoading,
+    isError: loansError,
+  } = useUserLoans();
   const [selectedLoanType, setSelectedLoanType] = useState(null);
   const [saveConfirm, setSaveConfirm] = useState(false);
 
@@ -114,22 +120,6 @@ export default function Dashboard() {
       toast.error(res.error.message || "Failed to create loan");
       return;
     } else {
-      // if (res[0]?.loan_type?.loan_type === "Special") {
-      //   const resLoanPayments = await createLoanPayment.mutateAsync(
-      //     selectedLoanType.special_dates.map((item) => ({
-      //       loan_id: res[0].id,
-      //       payment_date: item.term_date,
-      //       amount: item.amount,
-      //     })),
-      //   );
-
-      //   if (resLoanPayments.error) {
-      //     toast.error(
-      //       resLoanPayments.error.message || "Failed to create loan payments",
-      //     );
-      //     return;
-      //   }
-      // }
       toast.success("Loan created successfully");
       setSelectedLoanType(null);
       setSaveConfirm(false);
@@ -144,285 +134,49 @@ export default function Dashboard() {
 
   return (
     <div className="w-full">
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">Dashboard</h1>
-          <p className="text-muted-foreground mt-1">
-            Overview of your cooperative lending operations
-          </p>
-        </div>
+      <DashboardOverview
+        packages={data}
+        loans={loans}
+        loansLoading={loansLoading}
+        loansError={loansError}
+        onApply={handleOpenDialog}
+      />
 
-        {/* Available Loans Type */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Available Loans </CardTitle>
-          </CardHeader>
-
-          <CardContent>
-            {data?.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-muted-foreground">No loans available</p>
-              </div>
-            ) : (
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Amount</TableHead>
-                      <TableHead>Loan Name</TableHead>
-                      <TableHead>Loan Type</TableHead>
-
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {data?.map((item) => (
-                      <TableRow key={item?.loan_id}>
-                        <TableCell className="font-medium text-lg">
-                          {money(item?.loan_amount)}
-                        </TableCell>
-                        <TableCell className="font-medium">
-                          {item?.loan_name}
-                        </TableCell>
-
-                        <TableCell className="font-medium">
-                          <span
-                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              item?.loan_type === "Member"
-                                ? "bg-green-100 text-green-700 border-green-300"
-                                : item?.loan_type === "Associate"
-                                  ? "bg-blue-100 text-blue-700 border-blue-300"
-                                  : "bg-purple-100 text-purple-700 border-purple-300"
-                            }`}
-                          >
-                            {item?.loan_type}
-                          </span>
-                        </TableCell>
-
-                        <TableCell>
-                          <div className="flex  gap-2">
-                            {item?.isStatus == "pending" ? (
-                              <p className="flex rounded-full px-2.5 py-0.5 text-xs gap-1 bg-yellow-100 text-yellow-700 border-yellow-300">
-                                {item?.isStatus}
-                              </p>
-                            ) : item?.isStatus == "approved" ? (
-                              <p className="flex rounded-full px-2.5 py-0.5 text-xs gap-1 bg-green-100 text-green-700 border-green-300">
-                                {item?.isStatus}
-                              </p>
-                            ) : item?.isStatus == "rejected" ? (
-                              <p className="flex rounded-full px-2.5 py-0.5 text-xs gap-1 bg-red-100 text-red-700 border-red-300">
-                                ✘ {item?.isStatus}
-                              </p>
-                            ) : (
-                              ""
-                            )}
-                          </div>
-                        </TableCell>
-
-                        <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            {item?.isStatus ? (
-                              ""
-                            ) : (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleOpenDialog(item)}
-                              >
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                            )}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-        {/* Recent Transactions - loans*/}
-        <Card>
-          <CardHeader>
-            <CardTitle>Your Loans</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {loans?.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-muted-foreground">No loans available</p>
-              </div>
-            ) : (
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Amount</TableHead>
-
-                      <TableHead>Loan Name</TableHead>
-                      <TableHead>Loan Type</TableHead>
-                      <TableHead>Co-borrower</TableHead>
-                      <TableHead>Co-borrower Status</TableHead>
-
-                      <TableHead>Status</TableHead>
-                      <TableHead>Created at</TableHead>
-
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {loans?.map((item) => (
-                      <TableRow key={item.id}>
-                        <TableCell className="font-medium text-xl">
-                          {money(item?.loan_type?.loan_amount)}
-                        </TableCell>
-                        <TableCell className="font-medium">
-                          {item.loan_type.loan_name}
-                        </TableCell>
-
-                        <TableCell className="font-medium">
-                          {item.loan_type.loan_type}
-                        </TableCell>
-
-                        <TableCell>
-                          {item?.coborrower?.first_name}{" "}
-                          {item?.coborrower?.middle_name}{" "}
-                          {item?.coborrower?.last_name}
-                        </TableCell>
-                        <TableCell>{item?.coborrower_status}</TableCell>
-                        <TableCell>
-                          <div className="flex  gap-2">
-                            {item?.status == "pending" ? (
-                              <p className="flex rounded-full px-2.5 py-0.5 text-xs gap-1 bg-yellow-100 text-yellow-700 border-yellow-300">
-                                {item?.status}
-                              </p>
-                            ) : item?.status == "approved" ? (
-                              <p className="flex rounded-full px-2.5 py-0.5 text-xs gap-1 bg-green-100 text-green-700 border-green-300">
-                                {item?.status}
-                              </p>
-                            ) : item?.status == "restructured" ? (
-                              <p className="flex rounded-full px-2.5 py-0.5 text-xs gap-1 bg-blue-100 text-blue-700 border-blue-300">
-                                {item?.status}
-                              </p>
-                            ) : item?.status == "rejected" ? (
-                              <p className="flex rounded-full px-2.5 py-0.5 text-xs gap-1 bg-red-100 text-red-700 border-red-300">
-                                ✘ {item?.status}
-                              </p>
-                            ) : (
-                              ""
-                            )}
-                          </div>
-                        </TableCell>
-
-                        <TableCell>
-                          {format(new Date(item.created_at), "MMM dd, yyyy")}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <Link to={`/loans/${item.id}`}>
-                              <Eye className="h-4 w-4" />
-                            </Link>
-
-                            {/* <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDelete(user)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button> */}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      <Dialog open={selectedLoanType} onOpenChange={setSelectedLoanType}>
-        <DialogContent className="max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-3xl">
-              Are you sure you want to apply for this loan?{" "}
+      <Dialog
+        open={Boolean(selectedLoanType)}
+        onOpenChange={(open) => {
+          if (!open) handleCloseDialog();
+        }}
+      >
+        <DialogContent className="flex max-h-[92dvh] flex-col gap-0 overflow-hidden rounded-2xl p-0 md:max-w-2xl">
+          <DialogHeader className="shrink-0 gap-2 border-b border-slate-100 px-5 py-5 pr-12 text-left sm:px-6 sm:pr-12 dark:border-slate-800">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded border border-emerald-100 bg-emerald-50 px-2 py-1 text-[9px] font-semibold uppercase tracking-wide text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-400">
+                Loan application confirmation
+              </span>
+              <span className="text-[10px] text-slate-400">Cooperative Credit Scheme</span>
+            </div>
+            <DialogTitle className="text-xl font-semibold leading-snug tracking-tight sm:text-2xl">
+              Are you sure you want to apply for this loan?
             </DialogTitle>
+            <DialogDescription className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+              Please review the loan terms, deduction breakdown, and payment schedule before proceeding.
+            </DialogDescription>
           </DialogHeader>
 
-          <div className="flex gap-4 flex-col">
-            <p className="text-lg pb-2 border-b boder-muted-foreground">
-              Loan Name: {selectedLoanType?.loan_name}
-            </p>
-            <p className="text-lg pb-2 border-b boder-muted-foreground">
-              Loan Type: {selectedLoanType?.loan_type}
-            </p>
-            <p className="text-lg pb-2 border-b boder-muted-foreground">
-              Loan Amount: {money(selectedLoanType?.loan_amount)}
-            </p>
-            <p className="text-lg pb-2 border-b boder-muted-foreground ">
-              Loan Interest: {selectedLoanType?.interest_rate}%
-            </p>
-            <p className="text-lg pb-2 border-b boder-muted-foreground">
-              Service Fee: {selectedLoanType?.service_fee}%
-            </p>
+          <div className="min-h-0 space-y-5 overflow-y-auto p-6">
+            <ApplyLoanSummary loan={selectedLoanType} />
             <div className="space-y-4">
-              <Label htmlFor="search" className="text-sm">
+              <Label htmlFor="search" className="text-[10px] font-semibold uppercase tracking-wide">
                 Search for co-borrower (optional)
               </Label>
 
               <UserSearch setSelectedLoanType={setSelectedLoanType} />
             </div>
-            {selectedLoanType?.special_dates?.length > 0 && (
-              <>
-                <p className="text-lg font-semibold">Payment Schedule</p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {selectedLoanType?.special_dates?.map((item) => (
-                    <div key={item.id} className="grid grid-cols-2 gap-4 ">
-                      <div className="space-y-2 ">
-                        <Label className="text-sm">
-                          Term {item.term_number} - Payment Date
-                        </Label>
-                        <p>{item.term_date}</p>
-                      </div>
-                      <div className="space-y-2 ">
-                        <Label className="text-sm">Amount</Label>
-                        <p>{money(item.amount).toLocaleString()}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
-            {!selectedLoanType?.special_dates?.length > 0 &&
-              generatedDates &&
-              generatedDates.length > 0 && (
-                <div className="text-sm text-muted-foreground">
-                  <p className="mb-2 text-md">Sample Computations:</p>
-
-                  {generatedDates.length === 1 ? (
-                    <p>{generatedDates[0]}</p>
-                  ) : (
-                    generatedDates
-                      .reduce((acc, curr, i) => {
-                        if (i % 2 === 0) {
-                          const next = generatedDates[i + 1];
-                          acc.push(next ? `${curr}, ${next}` : curr); // fallback if odd
-                        }
-                        return acc;
-                      }, [])
-                      .map((range, index) => (
-                        <p key={index} className="py-0.5">
-                          {range}
-                        </p>
-                      ))
-                  )}
-                </div>
-              )}
+            <ApplyLoanSchedule loan={selectedLoanType} dates={generatedDates} />
 
             <div className="space-y-4">
-              <div className="flex items-center gap-3">
+              <div className="flex items-start gap-3">
                 <Checkbox
                   id="terms"
                   required
@@ -435,7 +189,7 @@ export default function Dashboard() {
                   }
                 />
 
-                <label htmlFor="terms" className="text-md ">
+                <label htmlFor="terms" className="text-xs leading-5 text-slate-500">
                   I agree to the
                   <Dialog>
                     <DialogTrigger>
@@ -475,8 +229,9 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <DialogFooter>
-              <Button variant="outline" onClick={handleCloseDialog}>
+          </div>
+            <DialogFooter className="m-0 shrink-0 rounded-b-2xl border-t bg-slate-50 px-6 py-4 dark:bg-slate-900">
+              <Button type="button" className="rounded-xl" variant="outline" onClick={handleCloseDialog}>
                 Cancel
               </Button>
 
@@ -492,11 +247,11 @@ export default function Dashboard() {
                   setSaveConfirm(true);
                 }}
                 disabled={createUserLoan.isPending}
+                className="rounded-xl bg-emerald-600 px-6 text-white hover:bg-emerald-700"
               >
                 {createUserLoan.isPending ? "Applying..." : "Apply this Loan"}
               </Button>
             </DialogFooter>
-          </div>
         </DialogContent>
       </Dialog>
 
